@@ -69,6 +69,13 @@ export function aktuelleStufe(inventar: Inventar): number {
   return erreicht
 }
 
+/** Ein Rückfall: Nach einem Verlust (z. B. durch einen Tod) steht Bernard auf einer niedrigeren Stufe. null: keiner. */
+export function rueckfall(vorher: Inventar, nachher: Inventar): { von: number; nach: number } | null {
+  const von = aktuelleStufe(vorher)
+  const nach = aktuelleStufe(nachher)
+  return nach < von ? { von, nach } : null
+}
+
 /** „zur Steinzeit“, „zum Nether“ */
 export function bisZu(nummer: number): string {
   const stufe = STUFEN[nummer - 1]
