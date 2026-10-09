@@ -1,6 +1,7 @@
 // Startet Bernard mit der Konfiguration aus config/bernard.json und der Persönlichkeit aus config/persoenlichkeit.md.
 // Ohne Abschnitt "ki" versteht Bernard nur die festen Befehle.
 import { existsSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { starteBernard, type BernardOptionen } from './bernard'
 
 const datei = (name: string) => new URL(`../config/${name}`, import.meta.url)
@@ -9,6 +10,8 @@ if (existsSync(datei('persoenlichkeit.md'))) optionen.persoenlichkeit = readFile
 // API-Schlüssel (z. B. für Groq) nie in die Datei schreiben, sondern als Umgebungsvariable setzen
 if (optionen.ki && process.env.BERNARD_KI_KEY) optionen.ki.apiKey = process.env.BERNARD_KI_KEY
 optionen.protokoll ??= process.env.BERNARD_PROTOKOLL ? text => console.log(text) : undefined
+// Laufberichte landen neben der Konfiguration, wenn dort nichts anderes steht
+optionen.laufberichtOrdner ??= fileURLToPath(datei('laufberichte'))
 
 const bot = starteBernard(optionen)
 bot.once('spawn', () => console.log(`${optionen.name} ist da. Kumpel: ${optionen.kumpel.join(', ')}. ` +

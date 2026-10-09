@@ -1,0 +1,28 @@
+diff --git a/node_modules/mineflayer/lib/plugins/inventory.js b/node_modules/mineflayer/lib/plugins/inventory.js
+index bab0eef..4b0ee4b 100644
+--- a/node_modules/mineflayer/lib/plugins/inventory.js
++++ b/node_modules/mineflayer/lib/plugins/inventory.js
+@@ -30,9 +30,12 @@ function inject (bot, { hideErrors }) {
+   let sequence = 0
+ 
+   let nextActionNumber = 0 // < 1.17
+-  let stateId = -1
++  // The server counts state per window and keeps updating the player
++  // inventory (window 0) while another window is open. A click carrying
++  // window 0's counter for another window is stale and gets ignored.
++  const stateIds = new Map()
+   if (bot.supportFeature('stateIdUsed')) {
+-    const listener = packet => { stateId = packet.stateId }
++    const listener = packet => { stateIds.set(packet.windowId, packet.stateId) }
+     bot._client.on('window_items', listener)
+     bot._client.on('set_slot', listener)
+   }
+@@ -629,7 +632,7 @@ function inject (bot, { hideErrors }) {
+     if (bot.supportFeature('stateIdUsed')) { // 1.17.1 +
+       bot._client.write('window_click', {
+         windowId: window.id,
+-        stateId,
++        stateId: stateIds.get(window.id) ?? -1,
+         slot,
+         mouseButton,
+         mode,

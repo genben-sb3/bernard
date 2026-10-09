@@ -12,12 +12,12 @@ Im Entscheider gilt: Läuft ein Befehl, gibt es keine Aktion. Ist das Vorhaben p
 
 **Blocked by:** 01 (Vorhaben starten und Stufe 1 erreichen)
 
-**Status:** ready-for-agent
+**Status:** erledigt
 
-- [ ] Unit-Tests für den Entscheider: Befehl läuft → keine Aktion. Pausiert → keine Aktion. Aktiv und kein Befehl → nächstes Ding.
-- [ ] Unit-Tests für die Befehlserkennung: „mach weiter“, „vergiss das Vorhaben“, „was machst du?“ und „wie weit bist du?“ samt englischer Varianten. „stopp“ wird weiter erkannt wie bisher.
-- [ ] Nur Kumpel können pausieren, fortsetzen, vergessen und den Status abfragen
-- [ ] Szenario (flache Welt): Vorhaben läuft, „komm her“ unterbricht es, Bernard kommt, sagt das Weitermachen an und läuft wieder los
-- [ ] Szenario: „stopp“ → Bernard bleibt auch nach einigen Sekunden stehen. „mach weiter“ → er setzt fort.
-- [ ] Szenario: „was machst du?“ liefert Stufe, nächstes Ziel und aktuelle Aktion. Nach „vergiss das Vorhaben“ kommt „Ich hab gerade nichts vor.“
-- [ ] Wenn Ticket 03 schon fertig ist, steht „vergessen“ als Grund im Laufbericht
+- [x] Unit-Tests für den Entscheider: Befehl läuft → keine Aktion. Pausiert → keine Aktion. Aktiv und kein Befehl → nächstes Ding.
+- [x] Unit-Tests für die Befehlserkennung: „mach weiter“, „vergiss das Vorhaben“, „was machst du?“ und „wie weit bist du?“ samt englischer Varianten. „stopp“ wird weiter erkannt wie bisher.
+- [x] Nur Kumpel können pausieren, fortsetzen, vergessen und den Status abfragen
+- [x] Szenario (flache Welt): Vorhaben läuft, „komm her“ unterbricht es, Bernard kommt, sagt das Weitermachen an und läuft wieder los
+- [x] Szenario: „stopp“ → Bernard bleibt auch nach einigen Sekunden stehen. „mach weiter“ → er setzt fort.
+- [x] Szenario: „was machst du?“ liefert Stufe, nächstes Ziel und aktuelle Aktion. Nach „vergiss das Vorhaben“ kommt „Ich hab gerade nichts vor.“
+- [x] Wenn Ticket 03 schon fertig ist, steht „vergessen“ als Grund im Laufbericht

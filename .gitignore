@@ -5,3 +5,5 @@ server.log
 sim/ergebnisse/
 dist/
 ollama.log
+config/laufberichte/
+server-normal/

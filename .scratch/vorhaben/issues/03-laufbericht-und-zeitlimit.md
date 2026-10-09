@@ -14,8 +14,8 @@ Tod und Rückfall kommen in Ticket 06 dazu. Das Format muss sie aufnehmen könne
 
 **Status:** ready-for-agent
 
-- [ ] Unit-Tests: Aus einer Folge von Inventar-Zuständen entstehen die richtigen Einträge. Jedes Ding erscheint nur beim ersten Erhalt, jeder Stufenwechsel wird festgehalten, und das Ende hat einen Grund.
-- [ ] Jeder Eintrag hat Spielzeit und Echtzeit
-- [ ] Ein Lauf im Szenario aus Ticket 01 erzeugt einen vollständigen Laufbericht im Ergebnisordner
-- [ ] Ein Szenario mit sehr kurzem Zeitlimit endet mit dem Grund „Zeitlimit“ und einer Meldung im Chat
-- [ ] Außerhalb der Simulation wird der Laufbericht neben der Konfiguration abgelegt
+- [x] Unit-Tests: Aus einer Folge von Inventar-Zuständen entstehen die richtigen Einträge. Jedes Ding erscheint nur beim ersten Erhalt, jeder Stufenwechsel wird festgehalten, und das Ende hat einen Grund.
+- [x] Jeder Eintrag hat Spielzeit und Echtzeit
+- [x] Ein Lauf im Szenario aus Ticket 01 erzeugt einen vollständigen Laufbericht im Ergebnisordner
+- [x] Ein Szenario mit sehr kurzem Zeitlimit endet mit dem Grund „Zeitlimit“ und einer Meldung im Chat
+- [ ] Außerhalb der Simulation wird der Laufbericht neben der Konfiguration abgelegt (eingebaut in `src/start.ts`, aber noch nicht mit echtem Spiel ausprobiert)
