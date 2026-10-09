@@ -15,7 +15,7 @@ Testet Bernard auf einem lokalen Testserver, ohne dass ein Mensch mitspielen mus
 
 ```sh
 cd server && ../.tools/java/bin/java -Xmx2G -jar paper.jar --nogui   # Server starten
-npm run sim -- folgen                                                # Szenario laufen lassen (folgen, sammeln, werkzeug, besorgen, ki, englisch, vorhaben, zeitlimit, unterbrechen, weiterziehen, normalwelt, tod)
+npm run sim -- folgen                                                # Szenario laufen lassen (folgen, sammeln, werkzeug, besorgen, ki, englisch, vorhaben, zeitlimit, unterbrechen, weiterziehen, normalwelt, tod, stufe1)
 npx tsx sim/diagnose-wand.ts                                          # Wand-Diagnose: überall 0 Server-Korrekturen erwartet
 npx tsx sim/diagnose-werfen.ts                                        # Werfen/Craften: Server- und Bernard-Sicht aufs Inventar vergleichen
 npx tsx sim/diagnose-craften.ts 10                                    # Holzspitzhacke 10× craften, Paketspur bei Fehlschlag
@@ -33,6 +33,22 @@ Jedes Szenario legt mit `welt` fest, wo es läuft:
 **Seed:** `42`, Spawn bei x −32, y 71, z 0 auf Gras. Der nächste Baum (Schwarzeiche) ist 5,5 Blöcke entfernt, offener Stein etwa 10 Blöcke. Das Szenario `normalwelt` prüft das.
 
 **Seed ändern:** `SEED` und `SPAWN` in `sim/normalwelt.ts` anpassen und `npm run sim -- normalwelt` laufen lassen. Den Spawn des neuen Seeds nennt die fehlgeschlagene Prüfung „am erwarteten Spawn“. Ein neuer Seed taugt, wenn auch Baum und Monster bestanden sind und Stein in der Nähe offen liegt. Alle Messläufe mit dem alten Seed sind danach nicht mehr vergleichbar.
+
+## Ausgangsmessung Stufe 1
+
+`npm run sim -- stufe1` ist der Messlauf: frische Normalwelt (Seed 42, „normal“), „spiel bis zur Steinzeit“ mit 30 Minuten Zeitlimit, ohne Überlebenslogik. Ob Bernard die Steinzeit schafft, ist ein Messwert, kein Testfehler. Er steht in `messung.json` im Ergebnisordner. Ben steht im Kreativmodus am Spawn, und der Beobachter fliegt Bernard hinterher.
+
+Erste Ausgangsmessung (2026-10-09, Stand `df0257a`, also vor Ticket 004):
+
+| Lauf | Ende | Zeit bis Stufe 1 | Dauer | Tode | Rückfälle | Erfüllt |
+|---|---|---|---|---|---|---|
+| 10:50 | gescheitert | – | 456 s | 0 | 0 | Steinspitzhacke, Werkbank, Steinaxt |
+| 13:09 | gescheitert | – | 667 s | 1 | 0 | Werkbank |
+| 13:22 | gescheitert | – | 554 s | 1 | 0 | Steinspitzhacke, Werkbank, Steinaxt, Steinschwert |
+| 13:33 | gescheitert | – | 188 s | 0 | 0 | Werkbank |
+| 14:00 (nach Ticket 003) | gescheitert | – | 555 s | 1 | 0 | Steinspitzhacke, Werkbank, Steinaxt, Steinschwert, Ofen |
+
+**Befund:** Kein Lauf erreicht die Steinzeit. Alle fünf enden mit „Ich finde keinen Platz für die Werkbank“. Bernard steht dabei in einem selbst gegrabenen Loch, und dort ist keines der acht Nachbarfelder frei (Ticket 012). Außerdem bricht die Wegsuche zum Stein oft ab („Took to long to decide path“, 5 bis 62 Mal pro Lauf), weil Bernard unterwegs nicht gräbt und nur an offenen Stein kommt. Drei der fünf Läufe hatten einen Tod, beide auf Stufe 0, also ohne Rückfall.
 
 ## Neues Szenario
 
