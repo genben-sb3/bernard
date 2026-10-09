@@ -107,3 +107,28 @@ describe('erkenneBefehl – craften', () => {
     expect(erkenneBefehl('mach 3 holz')).toBeNull()
   })
 })
+
+describe('erkenneBefehl – Vorhaben', () => {
+  it.each([
+    ['spiel bis zur Steinzeit', 1],
+    ['spiel bis zur eisenzeit', 2],
+    ['spiele bis zur Diamantzeit', 3],
+    ['spiel bis zum Nether', 4],
+    ['spiel bis zum End', 5],
+    ['spiel bis stufe 2', 2],
+    ['play until the stone age', 1],
+    ['play until stage 3', 3],
+    ['besieg den Enderdrachen', 5],
+    ['besiege den enderdrachen!', 5],
+    ['töte den Enderdrachen', 5],
+    ['kill the ender dragon', 5],
+    ['beat the game', 5],
+    ['spiel minecraft durch', 5],
+  ])('%s → Zielstufe %i', (text, zielstufe) => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'vorhaben', zielstufe })
+  })
+
+  it.each(['spiel bis stufe 6', 'spiel bis zur bronzezeit', 'spiel mit mir', 'besieg den zombie'])('kennt „%s“ nicht', text => {
+    expect(erkenneBefehl(text)).toBeNull()
+  })
+})

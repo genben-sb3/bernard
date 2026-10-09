@@ -10,6 +10,8 @@ export type Befehl =
   /** ding null = alles; menge 'alle' = alles von diesem Ding */
   | { art: 'geben'; ding: DingName | null; menge: number | 'alle' }
   | { art: 'craften'; ding: DingName; menge: number }
+  /** Ein Vorhaben starten: selbstständig bis zu dieser Stufe spielen (5: Enderdrache). */
+  | { art: 'vorhaben'; zielstufe: number }
 
 export type Material = 'holz' | 'eichenholz' | 'birkenholz' | 'fichtenholz' | 'stein' | 'erde' | 'sand'
 
@@ -51,6 +53,21 @@ const GEBEN = /^(gib|give)( mir| me) (.+)$/
 const ALLES = /^(alles|everything|all deine sachen|all your stuff|all your items)$/
 const CRAFTEN = /^(mach|mache|crafte|craft|bau|baue|stell)( mir| me)? (.+?)( her)?$/
 
+/** Wörter für Stufen → Nummer. */
+const STUFEN_WOERTER: Record<string, number> = {
+  steinzeit: 1, 'stone age': 1, eisenzeit: 2, 'iron age': 2, diamantzeit: 3, 'diamond age': 3,
+  nether: 4, end: 5, 'the end': 5,
+}
+const SPIEL_BIS = /^(spiel|spiele|play)( minecraft)? (bis|until)( zur| zum| the)? (.+)$/
+const SPIELENDE = /^((besieg|besiege|töte|toete|kill|defeat|beat)( den| the)? (enderdrachen|ender ?dragon)|beat (the game|minecraft)|spiel (minecraft )?durch)$/
+
+/** „steinzeit“, „stufe 2“, „stage 3“ → Stufe 1 bis 5 (oder null). */
+function stufeAusWort(wort: string): number | null {
+  const nummer = wort.match(/^(stufe|stage) ([1-5])$/)
+  if (nummer) return Number(nummer[2])
+  return STUFEN_WOERTER[wort] ?? null
+}
+
 const SAMMELN = /^(hol|hole|sammle|sammel|bring|get|collect|gather)( mir| me)? (?:(\d+) )?(?:(?:stück|stueck|stk) )?(\S+)$/
 
 export type Nachricht = {
@@ -79,6 +96,12 @@ export function anBernard(nachricht: Nachricht, name = 'Bernard'): string | null
 export function erkenneBefehl(text: string): Befehl | null {
   const normal = text.toLowerCase().replace(/[.!?]+$/, '').replace(/\s+/g, ' ').trim()
   if (INVENTAR.test(normal)) return { art: 'inventar' }
+  if (SPIELENDE.test(normal)) return { art: 'vorhaben', zielstufe: 5 }
+  const spielBis = normal.match(SPIEL_BIS)
+  if (spielBis) {
+    const zielstufe = stufeAusWort(spielBis[5])
+    return zielstufe ? { art: 'vorhaben', zielstufe } : null
+  }
   const geben = normal.match(GEBEN)
   if (geben) {
     if (ALLES.test(geben[3])) return { art: 'geben', ding: null, menge: 'alle' }

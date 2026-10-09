@@ -9,6 +9,8 @@ import { bewegungen } from './eingriffe'
 import { DINGE, mitMenge } from './dinge'
 import { antwortZumGeben, beschreibeInventar, gib, type Geben } from './inventar'
 import { sammle, type Sammelergebnis } from './sammeln'
+import { aktuelleStufe, bisZu, STUFEN } from './stufen'
+import { inventarVon, verfolgeVorhaben } from './vorhaben'
 
 const { pathfinder, goals } = pathfinderPkg
 
@@ -124,6 +126,23 @@ export function starteBernard(optionen: BernardOptionen): Bot {
             else if (ergebnis.art === 'keinPlatz') antworte(bot, nachricht, 'Ich finde keinen Platz für die Werkbank.')
           })
           .catch(fehler => meldeFehler(bot, nachricht, aufgabe, 'Beim Craften', fehler, optionen.protokoll))
+        return
+      }
+      case 'vorhaben': {
+        const ziel = befehl.zielstufe
+        if (aktuelleStufe(inventarVon(bot)) >= ziel) return antworte(bot, nachricht, `Bis ${bisZu(ziel)} bin ich schon.`)
+        const aufgabe: Abbruch = { abgebrochen: false }
+        laufendeAufgabe = aufgabe
+        antworte(bot, nachricht, ziel === STUFEN.length ? 'Okay, auf zum Enderdrachen!' : `Okay, ich spiele bis ${bisZu(ziel)}.`)
+        void verfolgeVorhaben(bot, ziel, { abbruch: aufgabe, melde: text => antworte(bot, nachricht, text), protokoll: optionen.protokoll })
+          .then(ende => {
+            if (aufgabe.abgebrochen) return
+            if (ende.art === 'gescheitert') antworte(bot, nachricht, `${ende.text} Ich höre mit dem Vorhaben auf.`)
+            else if (ende.art === 'fertig' && ende.grund === 'stufeNichtUmgesetzt') {
+              antworte(bot, nachricht, `Weiter als bis ${bisZu(ende.stufe)} kann ich noch nicht.`)
+            }
+          })
+          .catch(fehler => meldeFehler(bot, nachricht, aufgabe, 'Beim Vorhaben', fehler, optionen.protokoll))
         return
       }
     }

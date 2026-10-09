@@ -49,9 +49,15 @@ export async function crafte(bot: Bot, ding: DingName, menge: number, abbruch: A
       }
       const ergebnisId = schritt.rezept.result.id
       const erwartet = anzahlVon(bot, ergebnisId) + schritt.mal * schritt.rezept.result.count
-      await warteAufInventarRuhe(bot)
-      await bot.craft(schritt.rezept, schritt.mal, schritt.rezept.requiresTable ? werkbank! : undefined)
-      await warteBisImInventar(bot, ergebnisId, erwartet)
+      // Der Server ignoriert Inventar-Klicks manchmal stillschweigend (siehe sim/LIESMICH.md): dann einmal neu versuchen
+      for (let versuch = 1; anzahlVon(bot, ergebnisId) < erwartet; versuch++) {
+        if (versuch > 2) throw new Error(`${bot.registry.items[ergebnisId].name} kam nach zwei Versuchen nicht im Inventar an`)
+        if (versuch > 1) protokoll(`Craften: ${bot.registry.items[ergebnisId].name} kam nicht an, neuer Versuch`)
+        await warteAufInventarRuhe(bot)
+        const mal = Math.ceil((erwartet - anzahlVon(bot, ergebnisId)) / schritt.rezept.result.count)
+        await bot.craft(schritt.rezept, mal, schritt.rezept.requiresTable ? werkbank! : undefined)
+        await warteBisImInventar(bot, ergebnisId, erwartet)
+      }
     }
   } finally {
     if (aufgestellt) await nimmWerkbankMit(bot, aufgestellt, abbruch, protokoll)

@@ -15,7 +15,7 @@ Testet Bernard auf einem lokalen Testserver, ohne dass ein Mensch mitspielen mus
 
 ```sh
 cd server && ../.tools/java/bin/java -Xmx2G -jar paper.jar --nogui   # Server starten
-npm run sim -- folgen                                                # Szenario laufen lassen (folgen, sammeln, werkzeug, besorgen)
+npm run sim -- folgen                                                # Szenario laufen lassen (folgen, sammeln, werkzeug, besorgen, vorhaben)
 npx tsx sim/diagnose-wand.ts                                          # Wand-Diagnose: überall 0 Server-Korrekturen erwartet
 npx tsx sim/diagnose-werfen.ts                                        # Werfen/Craften: Server- und Bernard-Sicht aufs Inventar vergleichen
 node sim/rcon-befehl.mjs "list"                                      # beliebige Server-Befehle
