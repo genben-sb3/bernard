@@ -16,6 +16,7 @@ Eine Datei pro Ticket. Abarbeiten, sobald die Blocker erledigt sind. Begriffe st
 | 010 | [Folgen glätten](010-folgen-glaetten.md) | 1 | – |
 | 011 | [Vorhaben-Gerüst und Stufe 1 (Steinzeit)](011-vorhaben-geruest-und-stufe-1.md) | 1 | 001 · **Priorität** |
 | ~~012~~ | [Werkbank und Ofen auch in engen Stellen aufstellen](012-aufstellen-in-engen-stellen.md) ✅ | 1 | – · **Priorität** (vor 013) |
+| 013 | [Stufe 2 (Eisenzeit): Vorrat, Lager und Mine](013-stufe-2-eisenzeit.md) | 1 | 004, 012, 011 · **Priorität** |
 
 ## Später (Version 2+, noch ohne Ticket)
 - Sachen nach dem Tod zurückholen (Q24)
