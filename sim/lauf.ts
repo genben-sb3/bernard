@@ -9,6 +9,7 @@ import { PORT as NORMAL_PORT, RCON_PASSWORT as NORMAL_RCON_PASSWORT, RCON_PORT a
 import type { Szenario } from './szenario'
 import { folgen } from './szenarien/folgen'
 import { sammeln } from './szenarien/sammeln'
+import { aufstellen } from './szenarien/aufstellen'
 import { besorgen } from './szenarien/besorgen'
 import { englisch } from './szenarien/englisch'
 import { ki } from './szenarien/ki'
@@ -22,7 +23,7 @@ import { normalwelt } from './szenarien/normalwelt'
 import { tod } from './szenarien/tod'
 import { Testspieler, warte } from './testspieler'
 
-const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki, englisch, vorhaben, zeitlimit, unterbrechen, weiterziehen, schmelzen, normalwelt, tod }
+const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki, englisch, vorhaben, zeitlimit, unterbrechen, weiterziehen, schmelzen, aufstellen, normalwelt, tod }
 
 const BODEN = -60
 

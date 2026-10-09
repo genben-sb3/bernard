@@ -1,6 +1,6 @@
 # 012: Werkbank und Ofen auch in engen Stellen aufstellen
 
-**Status:** offen · **Label:** ready-for-agent · **Blockiert von:** – · **Version:** 1 · **Priorität:** vor Spec 013 (Stufe 2), verfälscht sonst die Messläufe zu Stufe 1 (Ticket 07)
+**Status:** erledigt (Branch `ticket-012-aufstellen`) · **Blockiert von:** – · **Version:** 1 · **Priorität:** vor Spec 013 (Stufe 2), verfälscht sonst die Messläufe zu Stufe 1 (Ticket 07)
 
 ## Problem
 Im ersten Messlauf zu Stufe 1 (Vorhaben-Ticket 07) hat Bernard nach 7,6 Minuten mit „Ich finde keinen Platz für die Werkbank“ aufgegeben. Laufbericht: Ende „gescheitert“. Er stand in einem 1×1-Loch, das er selbst gegraben hatte, bei (-15, 69, 1). Das Gelände ringsum lag auf y 71 bis 73.

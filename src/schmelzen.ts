@@ -44,7 +44,7 @@ export async function schmelze(bot: Bot, ergebnis: string, menge: number, abbruc
   let aufgestellt: Block | null = null
   try {
     if (!ofen) {
-      aufgestellt = await stelleAuf(bot, 'furnace')
+      aufgestellt = await stelleAuf(bot, 'furnace', protokoll)
       if (!aufgestellt) return { art: 'keinPlatz' }
       ofen = aufgestellt
       protokoll(`Schmelzen: Ofen aufgestellt bei ${ofen.position}`)

@@ -6,7 +6,7 @@ import { Vec3 } from 'vec3'
 import { halteAn, type Abbruch } from './auftrag'
 import type { Recipe } from 'prismarine-recipe'
 import { erstellePlanner, type Bestand } from './craftplan'
-import { baueAb, platziere, warumNichtPlatzieren } from './eingriffe'
+import { baueAb, platziere, warumNichtAbbauen, warumNichtPlatzieren } from './eingriffe'
 import { DINGE, dingAufloeser, dingFuer, mitMenge, type DingSchluessel } from './dinge'
 import { aufzaehlung, texte, type Sprache } from './texte'
 import { warteAufInventarRuhe } from './ruhe'
@@ -41,7 +41,7 @@ export async function crafte(bot: Bot, ding: DingSchluessel, menge: number, abbr
     for (const schritt of plan.schritte) {
       if (abbruch.abgebrochen) return { art: 'abgebrochen' }
       if (schritt.rezept.requiresTable && !werkbank) {
-        aufgestellt = await stelleAuf(bot, 'crafting_table')
+        aufgestellt = await stelleAuf(bot, 'crafting_table', protokoll)
         if (!aufgestellt) return { art: 'keinPlatz' }
         werkbank = aufgestellt
         protokoll(`Craften: Werkbank aufgestellt bei ${werkbank.position}`)
@@ -110,8 +110,15 @@ function werkbankInDerNaehe(bot: Bot): Block | null {
   return bot.findBlock({ matching: bot.registry.blocksByName.crafting_table.id, maxDistance: WERKBANK_REICHWEITE })
 }
 
-/** Stellt einen Block aus dem Inventar (Werkbank, Ofen) auf einen freien Platz neben Bernard. */
-export async function stelleAuf(bot: Bot, name: string): Promise<Block | null> {
+/** Abbauzeit, bis zu der Bernard sich einen Platz freigräbt (Erde, Stein, Tiefenschiefer, nicht Obsidian) */
+const FREIGRABEN_MAX_MS = 5000
+const FLUESSIG = new Set(['water', 'lava'])
+
+/**
+ * Stellt einen Block aus dem Inventar (Werkbank, Ofen) auf einen Platz neben Bernard: zuerst auf Fußhöhe,
+ * sonst eine Ebene höher (Stufe am Rand eines Lochs), sonst gräbt er sich einen Platz auf Fußhöhe frei.
+ */
+export async function stelleAuf(bot: Bot, name: string, protokoll: (text: string) => void = () => {}): Promise<Block | null> {
   const item = bot.inventory.items().find(i => i.name === name)
   if (!item) return null
   const fuesse = bot.entity.position.floored()
@@ -119,17 +126,47 @@ export async function stelleAuf(bot: Bot, name: string): Promise<Block | null> {
   // Abbauen den Drop
   const andere = Object.values(bot.players).filter(p => p.entity && p.username !== bot.username).map(p => p.entity.position)
   const abstandZuAnderen = (p: Vec3) => Math.min(Infinity, ...andere.map(a => a.distanceTo(p)))
-  const plaetze = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]
-    .map(([dx, dz]) => fuesse.offset(dx, 0, dz))
+  const nachbarn = (dy: number, nurGerade = false) => [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]
+    .slice(0, nurGerade ? 4 : 8)
+    .map(([dx, dz]) => fuesse.offset(dx, dy, dz))
     .sort((a, b) => abstandZuAnderen(b) - abstandZuAnderen(a))
-  for (const platz of plaetze) {
+  const frei = (platz: Vec3) => {
     const unten = bot.blockAt(platz.offset(0, -1, 0))
-    if (bot.blockAt(platz)?.name !== 'air' || !unten || unten.boundingBox !== 'block') continue
-    if (warumNichtPlatzieren(bot, platz)) continue
+    return bot.blockAt(platz)?.name === 'air' && unten?.boundingBox === 'block' && !warumNichtPlatzieren(bot, platz)
+  }
+  const setze = async (platz: Vec3) => {
     await bot.equip(item, 'hand')
-    await platziere(bot, unten, new Vec3(0, 1, 0))
+    await platziere(bot, bot.blockAt(platz.offset(0, -1, 0))!, new Vec3(0, 1, 0))
     const gesetzt = bot.blockAt(platz)
-    if (gesetzt?.name === name) return gesetzt
+    return gesetzt?.name === name ? gesetzt : null
+  }
+
+  for (const platz of [...nachbarn(0), ...nachbarn(1)]) {
+    if (!frei(platz)) continue
+    const gesetzt = await setze(platz)
+    if (gesetzt) return gesetzt
+  }
+
+  // Kein Platz (z. B. in einem selbst gegrabenen Loch): eine Nische auf Fußhöhe freigraben, zwei Blöcke hoch,
+  // damit Bernard den Block danach wieder erreicht und aufheben kann
+  const grabbar = (platz: Vec3) => {
+    const block = bot.blockAt(platz)
+    if (!block || block.name === 'air') return 'frei'
+    if (block.boundingBox !== 'block' || !bot.canDigBlock(block) || bot.digTime(block) > FREIGRABEN_MAX_MS) return null
+    if (warumNichtAbbauen(bot, platz, block)) return null
+    const umgebung = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0]].map(([dx, dy, dz]) => bot.blockAt(platz.offset(dx, dy, dz))?.name ?? '')
+    return umgebung.some(n => FLUESSIG.has(n)) ? null : block
+  }
+  for (const platz of nachbarn(0, true)) {
+    if (bot.blockAt(platz.offset(0, -1, 0))?.boundingBox !== 'block') continue
+    const fuss = grabbar(platz)
+    const kopf = grabbar(platz.offset(0, 1, 0))
+    if (!fuss || !kopf) continue
+    protokoll(`Aufstellen: kein Platz für ${name}, grabe eine Nische bei ${platz}`)
+    for (const block of [kopf, fuss]) if (typeof block !== 'string') await baueAb(bot, block)
+    if (!frei(platz)) continue
+    const gesetzt = await setze(platz)
+    if (gesetzt) return gesetzt
   }
   return null
 }
