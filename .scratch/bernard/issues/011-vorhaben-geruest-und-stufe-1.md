@@ -1,6 +1,6 @@
 # 011: Vorhaben-Gerüst und Stufe 1 (Steinzeit)
 
-**Status:** offen · **Label:** ready-for-agent · **Blockiert von:** 001 (`besorge` muss fertig und committet sein) · **Version:** 1 (Grilling vom 2026-10-09)
+**Status:** erledigt (Vorhaben-Tickets 01–07; 07 liegt noch auf Branch `ticket-07-messlauf`) · **Blockiert von:** 001 (`besorge` muss fertig und committet sein) · **Version:** 1 (Grilling vom 2026-10-09)
 
 **Tickets:** aufgeteilt in `.scratch/vorhaben/issues/` (01–07, siehe dortige INDEX.md).
 
