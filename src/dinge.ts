@@ -1,4 +1,5 @@
-// Gegenstände, über die Bernard spricht: Wörter im Chat, deutsche Namen, passende Minecraft-Gegenstände.
+// Gegenstände, über die Bernard spricht: Wörter im Chat, deutsche und englische Namen, passende Minecraft-Gegenstände.
+import type { Sprache } from './texte'
 
 export type Ding = {
   /** Einzahl und Mehrzahl für Bernards Antworten. */
@@ -6,6 +7,8 @@ export type Ding = {
   mehrzahl: string
   /** „kein Holz“, „keinen Bruchstein“, „keine Bretter“ */
   kein: string
+  /** Englisch wie im Spiel: Einzahl, Mehrzahl, „no …“ */
+  en: [einzahl: string, mehrzahl: string, kein: string]
   /** Welche Minecraft-Gegenstände dazugehören. */
   passt: (gegenstand: string) => boolean
   /** Was Bernard herstellt, wenn er es craften soll (bei Brettern: passend zum vorhandenen Holz). */
@@ -17,29 +20,29 @@ const istStamm = (n: string) => /_(log|stem)$/.test(n) && !n.startsWith('strippe
 const HOLZARTEN = ['oak', 'spruce', 'birch', 'jungle', 'acacia', 'dark_oak', 'mangrove', 'cherry', 'pale_oak']
 
 export const DINGE = {
-  holz: { einzahl: 'Holz', mehrzahl: 'Holz', kein: 'kein Holz', passt: istStamm },
-  eichenholz: { einzahl: 'Eichenstamm', mehrzahl: 'Eichenstämme', kein: 'keine Eichenstämme', passt: genau('oak_log') },
-  birkenholz: { einzahl: 'Birkenstamm', mehrzahl: 'Birkenstämme', kein: 'keine Birkenstämme', passt: genau('birch_log') },
-  fichtenholz: { einzahl: 'Fichtenstamm', mehrzahl: 'Fichtenstämme', kein: 'keine Fichtenstämme', passt: genau('spruce_log') },
-  stein: { einzahl: 'Bruchstein', mehrzahl: 'Bruchstein', kein: 'keinen Bruchstein', passt: genau('cobblestone') },
-  erde: { einzahl: 'Erde', mehrzahl: 'Erde', kein: 'keine Erde', passt: genau('dirt') },
-  sand: { einzahl: 'Sand', mehrzahl: 'Sand', kein: 'keinen Sand', passt: genau('sand') },
-  bretter: { einzahl: 'Brett', mehrzahl: 'Bretter', kein: 'keine Bretter', passt: n => n.endsWith('_planks'), herstellen: HOLZARTEN.map(h => `${h}_planks`) },
-  stoecke: { einzahl: 'Stock', mehrzahl: 'Stöcke', kein: 'keine Stöcke', passt: genau('stick'), herstellen: ['stick'] },
-  werkbank: { einzahl: 'Werkbank', mehrzahl: 'Werkbänke', kein: 'keine Werkbank', passt: genau('crafting_table'), herstellen: ['crafting_table'] },
-  truhe: { einzahl: 'Truhe', mehrzahl: 'Truhen', kein: 'keine Truhe', passt: genau('chest'), herstellen: ['chest'] },
-  ofen: { einzahl: 'Ofen', mehrzahl: 'Öfen', kein: 'keinen Ofen', passt: genau('furnace'), herstellen: ['furnace'] },
-  fackeln: { einzahl: 'Fackel', mehrzahl: 'Fackeln', kein: 'keine Fackeln', passt: genau('torch'), herstellen: ['torch'] },
-  kohle: { einzahl: 'Kohle', mehrzahl: 'Kohle', kein: 'keine Kohle', passt: genau('coal', 'charcoal') },
-  setzlinge: { einzahl: 'Setzling', mehrzahl: 'Setzlinge', kein: 'keine Setzlinge', passt: n => n.endsWith('_sapling') },
-  holzspitzhacke: { einzahl: 'Holzspitzhacke', mehrzahl: 'Holzspitzhacken', kein: 'keine Holzspitzhacke', passt: genau('wooden_pickaxe'), herstellen: ['wooden_pickaxe'] },
-  holzaxt: { einzahl: 'Holzaxt', mehrzahl: 'Holzäxte', kein: 'keine Holzaxt', passt: genau('wooden_axe'), herstellen: ['wooden_axe'] },
-  holzschaufel: { einzahl: 'Holzschaufel', mehrzahl: 'Holzschaufeln', kein: 'keine Holzschaufel', passt: genau('wooden_shovel'), herstellen: ['wooden_shovel'] },
-  holzschwert: { einzahl: 'Holzschwert', mehrzahl: 'Holzschwerter', kein: 'kein Holzschwert', passt: genau('wooden_sword'), herstellen: ['wooden_sword'] },
-  steinspitzhacke: { einzahl: 'Steinspitzhacke', mehrzahl: 'Steinspitzhacken', kein: 'keine Steinspitzhacke', passt: genau('stone_pickaxe'), herstellen: ['stone_pickaxe'] },
-  steinaxt: { einzahl: 'Steinaxt', mehrzahl: 'Steinäxte', kein: 'keine Steinaxt', passt: genau('stone_axe'), herstellen: ['stone_axe'] },
-  steinschaufel: { einzahl: 'Steinschaufel', mehrzahl: 'Steinschaufeln', kein: 'keine Steinschaufel', passt: genau('stone_shovel'), herstellen: ['stone_shovel'] },
-  steinschwert: { einzahl: 'Steinschwert', mehrzahl: 'Steinschwerter', kein: 'kein Steinschwert', passt: genau('stone_sword'), herstellen: ['stone_sword'] },
+  holz: { einzahl: 'Holz', mehrzahl: 'Holz', kein: 'kein Holz', en: ['Wood', 'Wood', 'no wood'], passt: istStamm },
+  eichenholz: { einzahl: 'Eichenstamm', mehrzahl: 'Eichenstämme', kein: 'keine Eichenstämme', en: ['Oak Log', 'Oak Logs', 'no oak logs'], passt: genau('oak_log') },
+  birkenholz: { einzahl: 'Birkenstamm', mehrzahl: 'Birkenstämme', kein: 'keine Birkenstämme', en: ['Birch Log', 'Birch Logs', 'no birch logs'], passt: genau('birch_log') },
+  fichtenholz: { einzahl: 'Fichtenstamm', mehrzahl: 'Fichtenstämme', kein: 'keine Fichtenstämme', en: ['Spruce Log', 'Spruce Logs', 'no spruce logs'], passt: genau('spruce_log') },
+  stein: { einzahl: 'Bruchstein', mehrzahl: 'Bruchstein', kein: 'keinen Bruchstein', en: ['Cobblestone', 'Cobblestone', 'no cobblestone'], passt: genau('cobblestone') },
+  erde: { einzahl: 'Erde', mehrzahl: 'Erde', kein: 'keine Erde', en: ['Dirt', 'Dirt', 'no dirt'], passt: genau('dirt') },
+  sand: { einzahl: 'Sand', mehrzahl: 'Sand', kein: 'keinen Sand', en: ['Sand', 'Sand', 'no sand'], passt: genau('sand') },
+  bretter: { einzahl: 'Brett', mehrzahl: 'Bretter', kein: 'keine Bretter', en: ['Plank', 'Planks', 'no planks'], passt: n => n.endsWith('_planks'), herstellen: HOLZARTEN.map(h => `${h}_planks`) },
+  stoecke: { einzahl: 'Stock', mehrzahl: 'Stöcke', kein: 'keine Stöcke', en: ['Stick', 'Sticks', 'no sticks'], passt: genau('stick'), herstellen: ['stick'] },
+  werkbank: { einzahl: 'Werkbank', mehrzahl: 'Werkbänke', kein: 'keine Werkbank', en: ['Crafting Table', 'Crafting Tables', 'no crafting table'], passt: genau('crafting_table'), herstellen: ['crafting_table'] },
+  truhe: { einzahl: 'Truhe', mehrzahl: 'Truhen', kein: 'keine Truhe', en: ['Chest', 'Chests', 'no chest'], passt: genau('chest'), herstellen: ['chest'] },
+  ofen: { einzahl: 'Ofen', mehrzahl: 'Öfen', kein: 'keinen Ofen', en: ['Furnace', 'Furnaces', 'no furnace'], passt: genau('furnace'), herstellen: ['furnace'] },
+  fackeln: { einzahl: 'Fackel', mehrzahl: 'Fackeln', kein: 'keine Fackeln', en: ['Torch', 'Torches', 'no torches'], passt: genau('torch'), herstellen: ['torch'] },
+  kohle: { einzahl: 'Kohle', mehrzahl: 'Kohle', kein: 'keine Kohle', en: ['Coal', 'Coal', 'no coal'], passt: genau('coal', 'charcoal') },
+  setzlinge: { einzahl: 'Setzling', mehrzahl: 'Setzlinge', kein: 'keine Setzlinge', en: ['Sapling', 'Saplings', 'no saplings'], passt: n => n.endsWith('_sapling') },
+  holzspitzhacke: { einzahl: 'Holzspitzhacke', mehrzahl: 'Holzspitzhacken', kein: 'keine Holzspitzhacke', en: ['Wooden Pickaxe', 'Wooden Pickaxes', 'no wooden pickaxe'], passt: genau('wooden_pickaxe'), herstellen: ['wooden_pickaxe'] },
+  holzaxt: { einzahl: 'Holzaxt', mehrzahl: 'Holzäxte', kein: 'keine Holzaxt', en: ['Wooden Axe', 'Wooden Axes', 'no wooden axe'], passt: genau('wooden_axe'), herstellen: ['wooden_axe'] },
+  holzschaufel: { einzahl: 'Holzschaufel', mehrzahl: 'Holzschaufeln', kein: 'keine Holzschaufel', en: ['Wooden Shovel', 'Wooden Shovels', 'no wooden shovel'], passt: genau('wooden_shovel'), herstellen: ['wooden_shovel'] },
+  holzschwert: { einzahl: 'Holzschwert', mehrzahl: 'Holzschwerter', kein: 'kein Holzschwert', en: ['Wooden Sword', 'Wooden Swords', 'no wooden sword'], passt: genau('wooden_sword'), herstellen: ['wooden_sword'] },
+  steinspitzhacke: { einzahl: 'Steinspitzhacke', mehrzahl: 'Steinspitzhacken', kein: 'keine Steinspitzhacke', en: ['Stone Pickaxe', 'Stone Pickaxes', 'no stone pickaxe'], passt: genau('stone_pickaxe'), herstellen: ['stone_pickaxe'] },
+  steinaxt: { einzahl: 'Steinaxt', mehrzahl: 'Steinäxte', kein: 'keine Steinaxt', en: ['Stone Axe', 'Stone Axes', 'no stone axe'], passt: genau('stone_axe'), herstellen: ['stone_axe'] },
+  steinschaufel: { einzahl: 'Steinschaufel', mehrzahl: 'Steinschaufeln', kein: 'keine Steinschaufel', en: ['Stone Shovel', 'Stone Shovels', 'no stone shovel'], passt: genau('stone_shovel'), herstellen: ['stone_shovel'] },
+  steinschwert: { einzahl: 'Steinschwert', mehrzahl: 'Steinschwerter', kein: 'kein Steinschwert', en: ['Stone Sword', 'Stone Swords', 'no stone sword'], passt: genau('stone_sword'), herstellen: ['stone_sword'] },
 } satisfies Record<string, Ding>
 
 export type DingName = keyof typeof DINGE
@@ -55,6 +58,7 @@ export function minecraftDing(gegenstand: string, anzeigename: string): DingSchl
   if (!minecraftDinge.has(schluessel)) {
     minecraftDinge.set(schluessel, {
       einzahl: anzeigename, mehrzahl: anzeigename, kein: `kein ${anzeigename}`,
+      en: [anzeigename, anzeigename, `no ${anzeigename}`],
       passt: n => n === gegenstand, herstellen: [gegenstand],
     })
   }
@@ -99,13 +103,27 @@ export function dingAusWort(wort: string): DingName | null {
 }
 
 /** „1 Werkbank“, „4 Bretter“, „12 Holz“. */
-export function mitMenge(ding: DingSchluessel, anzahl: number) {
+export function mitMenge(ding: DingSchluessel, anzahl: number, sprache: Sprache = 'de') {
   const d = dingFuer(ding)
+  if (sprache === 'en') return `${anzahl} ${anzahl === 1 ? d.en[0] : d.en[1]}`
   return `${anzahl} ${anzahl === 1 ? d.einzahl : d.mehrzahl}`
 }
 
+/** Mehrzahl ohne Menge („Bruchstein“, „Oak Logs“). */
+export function mehrzahl(ding: DingSchluessel, sprache: Sprache = 'de') {
+  const d = dingFuer(ding)
+  return sprache === 'en' ? d.en[1] : d.mehrzahl
+}
+
+/** „kein Holz“ / „no wood“ */
+export function kein(ding: DingSchluessel, sprache: Sprache = 'de') {
+  const d = dingFuer(ding)
+  return sprache === 'en' ? d.en[2] : d.kein
+}
+
 /** Deutscher Name für einen beliebigen Minecraft-Gegenstand (oder der englische, wenn keiner bekannt ist). */
-export function nameFuer(gegenstand: string, anzahl: number, englisch: string): string {
+export function nameFuer(gegenstand: string, anzahl: number, englisch: string, sprache: Sprache = 'de'): string {
+  if (sprache === 'en') return `${anzahl} ${englisch}` // so heißt es im Spiel
   for (const [name, d] of Object.entries(DINGE) as Array<[DingName, Ding]>) {
     if (name !== 'holz' && d.passt(gegenstand)) return mitMenge(name, anzahl)
   }

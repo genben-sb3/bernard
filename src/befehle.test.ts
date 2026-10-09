@@ -97,6 +97,7 @@ describe('erkenneBefehl – craften', () => {
     ['crafte eine Werkbank', 'werkbank', 1],
     ['bau mir eine Holzspitzhacke', 'holzspitzhacke', 1],
     ['craft 2 sticks', 'stoecke', 2],
+    ['make me a crafting table', 'werkbank', 1],
     ['mach stöcke', 'stoecke', 1],
     ['stell einen ofen her', 'ofen', 1],
   ])('%s → %s × %i', (text, ding, menge) => {

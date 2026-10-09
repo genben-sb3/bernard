@@ -4,6 +4,7 @@ import type { Block } from 'prismarine-block'
 import pathfinderPkg from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
 import type { Material } from './befehle'
+import type { Werkzeugbedarf } from './texte'
 import { halteAn, type Abbruch } from './auftrag'
 import { baueAb as baueAbZentral, bewegungen, warumNichtAbbauen } from './eingriffe'
 
@@ -15,11 +16,11 @@ type MaterialArt = {
   /** Nur Stämme natürlich gewachsener Bäume, nie Gebautes. */
   nurBaeume?: boolean
   /** Werkzeug, ohne das der Block nichts fallen lässt. */
-  werkzeug?: { name: string; passt: (gegenstand: string) => boolean }
+  werkzeug?: { bedarf: Werkzeugbedarf; passt: (gegenstand: string) => boolean }
 }
 
 const istStamm = (n: string) => /_(log|stem)$/.test(n) && !n.startsWith('stripped_')
-const SPITZHACKE = { name: 'eine Spitzhacke', passt: (n: string) => n.endsWith('_pickaxe') }
+const SPITZHACKE = { bedarf: 'spitzhacke' as const, passt: (n: string) => n.endsWith('_pickaxe') }
 
 export const MATERIALIEN: Record<Material, MaterialArt> = {
   holz: { block: istStamm, gegenstand: istStamm, nurBaeume: true },
@@ -37,7 +38,7 @@ const ZEITLIMIT_PRO_BLOCK_MS = 20000
 export type Sammelergebnis =
   | { art: 'fertig'; anzahl: number }
   | { art: 'nichtsGefunden'; anzahl: number }
-  | { art: 'werkzeugFehlt'; werkzeug: string }
+  | { art: 'werkzeugFehlt'; werkzeug: Werkzeugbedarf }
   | { art: 'abgebrochen'; anzahl: number }
 
 
@@ -50,7 +51,7 @@ export async function sammle(bot: Bot, material: Material, menge: number, abbruc
   protokoll: (text: string) => void = () => {}): Promise<Sammelergebnis> {
   const art = MATERIALIEN[material]
   if (art.werkzeug && !bot.inventory.items().some(i => art.werkzeug!.passt(i.name))) {
-    return { art: 'werkzeugFehlt', werkzeug: art.werkzeug.name }
+    return { art: 'werkzeugFehlt', werkzeug: art.werkzeug.bedarf }
   }
   const startbestand = zaehle(bot, art)
   const gesammelt = () => zaehle(bot, art) - startbestand

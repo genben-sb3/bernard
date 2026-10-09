@@ -9,11 +9,12 @@ import type { Szenario } from './szenario'
 import { folgen } from './szenarien/folgen'
 import { sammeln } from './szenarien/sammeln'
 import { besorgen } from './szenarien/besorgen'
+import { englisch } from './szenarien/englisch'
 import { ki } from './szenarien/ki'
 import { werkzeug } from './szenarien/werkzeug'
 import { Testspieler, warte } from './testspieler'
 
-const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki }
+const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki, englisch }
 
 const VERBINDUNG = { host: 'localhost', port: 25565, version: '26.1' }
 const BODEN = -60
