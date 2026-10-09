@@ -18,9 +18,10 @@ import { zeitlimit } from './szenarien/zeitlimit'
 import { weiterziehen } from './szenarien/weiterziehen'
 import { unterbrechen } from './szenarien/unterbrechen'
 import { normalwelt } from './szenarien/normalwelt'
+import { tod } from './szenarien/tod'
 import { Testspieler, warte } from './testspieler'
 
-const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki, englisch, vorhaben, zeitlimit, unterbrechen, weiterziehen, normalwelt }
+const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki, englisch, vorhaben, zeitlimit, unterbrechen, weiterziehen, normalwelt, tod }
 
 const BODEN = -60
 

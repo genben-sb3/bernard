@@ -12,7 +12,7 @@ import { antwortZumGeben, beschreibeInventar, gib, type Geben } from './inventar
 import { verstehe, type KiEinstellungen } from './ki'
 import { sammle, type Sammelergebnis } from './sammeln'
 import { aktuelleStufe, bisZu, STUFEN } from './stufen'
-import { inventarVon, Vorhaben } from './vorhaben'
+import { inventarVon, merkeInventar, Vorhaben } from './vorhaben'
 import { erstelleLaufbericht } from './laufbericht'
 import { appendFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -82,6 +82,7 @@ export function starteBernard(optionen: BernardOptionen): Bot {
   let letzteSprache: Sprache = optionen.sprache === 'en' ? 'en' : 'de'
   let laufendeAufgabe: Abbruch | null = null
   let vorhaben: Vorhaben | null = null
+  const inventarVorDemTod = merkeInventar(bot)
   const brichAb = () => {
     if (laufendeAufgabe) laufendeAufgabe.abgebrochen = true
     laufendeAufgabe = null
@@ -237,7 +238,7 @@ export function starteBernard(optionen: BernardOptionen): Bot {
   bot.on('whisper', (absender, text) => verarbeite({ absender, text, privat: true }))
   bot.on('death', () => {
     brichAb()
-    vorhaben?.beende('abgebrochen')
+    if (vorhaben) return vorhaben.nachTod(inventarVorDemTod()) // respawnt von selbst und macht weiter
     bot.chat(texte(letzteSprache).gestorben)
   })
   return bot
