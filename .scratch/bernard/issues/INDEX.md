@@ -12,7 +12,7 @@ Eine Datei pro Ticket. Abarbeiten, sobald die Blocker erledigt sind. Begriffe st
 | 006 | [Kämpfen und Beschützen](006-kaempfen-und-beschuetzen.md) | 1 | – |
 | 007 | [Geschützte Bereiche](007-geschuetzte-bereiche.md) | 1 | – (zurückgestellt) |
 | 008 | [Beitreten, wenn ein Kumpel online kommt](008-beitreten-wenn-kumpel-online.md) | 1 | – |
-| 009 | [Ungetestetes prüfen (Erde, Sand, Axt, Tod)](009-ungetestetes-pruefen.md) | 1 | – |
+| ~~009~~ | [Ungetestetes prüfen (Erde, Sand, Axt, Tod)](009-ungetestetes-pruefen.md) ✅ | 1 | – |
 | 010 | [Folgen glätten](010-folgen-glaetten.md) | 1 | – |
 | ~~011~~ | [Vorhaben-Gerüst und Stufe 1 (Steinzeit)](011-vorhaben-geruest-und-stufe-1.md) ✅ | 1 | 001 · **Priorität** |
 | ~~012~~ | [Werkbank und Ofen auch in engen Stellen aufstellen](012-aufstellen-in-engen-stellen.md) ✅ | 1 | – · **Priorität** (vor 013) |
