@@ -43,7 +43,7 @@ export type Besorgergebnis =
   /** Nicht sammelbar oder gar nicht herstellbar */
   | { art: 'fehlt'; text: string }
   /** Sammelbar, aber in der Nähe nicht (mehr) zu finden */
-  | { art: 'nichtGefunden'; text: string }
+  | { art: 'nichtGefunden'; text: string; material: Material }
   | { art: 'keinPlatz' }
   | { art: 'abgebrochen' }
 
@@ -83,7 +83,7 @@ async function sammleMitWerkzeug(bot: Bot, material: Material, menge: number, k:
   }
   if (ergebnis.art === 'abgebrochen' || k.abbruch.abgebrochen) return { art: 'abgebrochen' }
   if (ergebnis.art === 'werkzeugFehlt') return { art: 'fehlt', text: `${ergebnis.werkzeug} für ${DINGE[material].mehrzahl}` }
-  if (ergebnis.art === 'nichtsGefunden') return { art: 'nichtGefunden', text: `Ich finde hier ${DINGE[material].kein}.` }
+  if (ergebnis.art === 'nichtsGefunden') return { art: 'nichtGefunden', text: `Ich finde hier ${DINGE[material].kein}.`, material }
   return { art: 'fertig', anzahl: ergebnis.anzahl, unterwegs: true }
 }
 
@@ -107,7 +107,7 @@ async function crafteMitZutaten(bot: Bot, ding: DingSchluessel, gesamt: number, 
     for (const auftrag of auftraege) {
       const bestand = bot.inventory.items().filter(i => DINGE[auftrag.material].passt(i.name)).reduce((s, i) => s + i.count, 0)
       const teil = await besorge(bot, auftrag.material, bestand + auftrag.menge, k, tiefe + 1)
-      if (teil.art === 'nichtGefunden') return { art: 'nichtGefunden', text: `${teil.text} Mir fehlen noch ${versuch.text}.` }
+      if (teil.art === 'nichtGefunden') return { ...teil, text: `${teil.text} Mir fehlen noch ${versuch.text}.` }
       if (teil.art !== 'fertig') return teil
       unterwegs = unterwegs || teil.unterwegs
     }

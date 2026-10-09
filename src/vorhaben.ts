@@ -1,12 +1,15 @@
 // Bernard verfolgt ein Vorhaben: Zustand lesen, den Entscheider fragen, die Aktion ausführen, von vorn.
 // Das Vorhaben läuft unter den Befehlen der Kumpel weiter: Ein Befehl unterbricht es, danach macht es weiter.
 import type { Bot } from 'mineflayer'
+import pathfinderPkg from 'mineflayer-pathfinder'
 import type { Abbruch } from './auftrag'
 import { besorge } from './besorgen'
-import { naechsterSchritt, type Aktion } from './entscheider'
-import { mitMenge } from './dinge'
+import { naechsterSchritt, WEITERZIEH_STRECKE, zaehleFehlschlag, type Aktion, type Fehlschlag, type Ort } from './entscheider'
+import { DINGE, mitMenge } from './dinge'
 import type { Endgrund, Laufbericht } from './laufbericht'
 import { aktuelleStufe, bisZu, fehlendes, STUFEN, type Inventar } from './stufen'
+
+const { goals } = pathfinderPkg
 
 /** So oft hintereinander darf dieselbe Aktion „fertig“ melden, ohne dass sich etwas tut. */
 const MAX_WIEDERHOLUNGEN = 3
@@ -43,11 +46,15 @@ export class Vorhaben {
   private letzte = ''
   private wiederholungen = 0
   private zeitlimit?: ReturnType<typeof setTimeout>
+  private fehlschlag?: Fehlschlag
+  /** Wo Bernard schon gesucht hat oder hingezogen ist (die jüngsten zuerst vergessen). */
+  private besucht: Ort[] = []
   private ansage?: ReturnType<typeof setTimeout>
 
   constructor(private readonly bot: Bot, readonly zielstufe: number, private readonly o: Vorhabenoptionen) {}
 
   starte() {
+    this.besucht = [this.position()]
     if (this.o.zeitlimitMs !== undefined) {
       this.zeitlimit = setTimeout(() => {
         if (this.status === 'beendet') return
@@ -84,6 +91,8 @@ export class Vorhaben {
   setzeFort() {
     if (this.status === 'beendet') return
     this.status = 'aktiv'
+    this.fehlschlag = undefined // der Kumpel hat vielleicht geholfen: neu versuchen
+    this.letzte = ''
     clearTimeout(this.ansage)
     void this.laufe()
   }
@@ -108,6 +117,7 @@ export class Vorhaben {
     if (this.status === 'pausiert') teile.push('Gerade warte ich, bis du „mach weiter“ sagst.')
     else if (this.status === 'unterbrochen') teile.push('Gerade mache ich, was du gesagt hast.')
     else if (this.aktion?.art === 'besorge') teile.push(`Gerade besorge ich ${mitMenge(this.aktion.ding, this.aktion.menge)}.`)
+    else if (this.aktion?.art === 'weiterziehen') teile.push(`Gerade suche ich woanders, weil ich hier ${DINGE[this.aktion.ding].kein} finde.`)
     return teile.join(' ')
   }
 
@@ -117,6 +127,32 @@ export class Vorhaben {
     if (stufe >= STUFEN.length) return null
     const s = fehlendes(STUFEN[stufe], inventar)[0]
     return s ? mitMenge(s.ding, s.menge) : null
+  }
+
+  private position(): Ort {
+    const p = this.bot.entity.position
+    return { x: Math.round(p.x), z: Math.round(p.z) }
+  }
+
+  private besuche(ort: Ort) {
+    this.besucht.push(ort)
+    if (this.besucht.length > 30) this.besucht.shift()
+  }
+
+  /** Läuft zum Ziel. Kommt Bernard nicht einmal halb so weit, zählt das als weiterer Fehlschlag. */
+  private async ziehWeiter(aktion: Extract<Aktion, { art: 'weiterziehen' }>, abbruch: Abbruch) {
+    const von = this.position()
+    this.o.melde(`Hier finde ich ${DINGE[aktion.ding].kein}, ich schau mich weiter weg um.`)
+    this.o.laufbericht?.weiterziehen(aktion.ding, von, aktion.nach)
+    this.besuche(aktion.nach)
+    await this.bot.pathfinder.goto(new goals.GoalNearXZ(aktion.nach.x, aktion.nach.z, 3)).catch(fehler => {
+      if (!abbruch.abgebrochen) this.o.protokoll?.(`Vorhaben: Weiterziehen klappt nicht (${fehler instanceof Error ? fehler.message : fehler})`)
+    })
+    if (abbruch.abgebrochen) return
+    const hier = this.position()
+    if (Math.hypot(hier.x - von.x, hier.z - von.z) < WEITERZIEH_STRECKE / 2) {
+      this.fehlschlag = zaehleFehlschlag(this.fehlschlag, { art: 'nichtGefunden', ding: aktion.ding, wo: hier })
+    }
   }
 
   /** Bricht den laufenden Durchgang ab. Mit `stehenbleiben` hält Bernard auch sofort an. */
@@ -158,6 +194,7 @@ export class Vorhaben {
       const aktion = naechsterSchritt({
         inventar: inventarVon(this.bot), zielstufe: this.zielstufe,
         befehlLaeuft: this.status === 'unterbrochen', pausiert: this.status === 'pausiert',
+        position: this.position(), besucht: this.besucht, fehlschlag: this.fehlschlag,
       })
       this.aktion = aktion
       this.o.protokoll?.(`Vorhaben: Stufe ${vorher}, nächster Schritt ${JSON.stringify(aktion)}`)
@@ -166,6 +203,17 @@ export class Vorhaben {
         return aktion.grund === 'stufeNichtUmgesetzt'
           ? { grund: aktion.grund, text: `Weiter als bis ${bisZu(aktion.stufe)} kann ich noch nicht.` }
           : { grund: aktion.grund }
+      }
+      if (aktion.art === 'melden') {
+        this.o.melde(`Ich finde ${DINGE[aktion.ding].kein}, auch nicht an ${aktion.anzahl} verschiedenen Stellen. ` +
+          'Ich komme nicht weiter und warte, bis du „mach weiter“ sagst.')
+        this.o.laufbericht?.aufgeben(aktion.ding, aktion.anzahl)
+        this.status = 'pausiert'
+        return null
+      }
+      if (aktion.art === 'weiterziehen') {
+        await this.ziehWeiter(aktion, abbruch)
+        continue
       }
 
       const schluessel = `${aktion.ding}/${aktion.menge}`
@@ -178,8 +226,16 @@ export class Vorhaben {
       const ergebnis = await besorge(this.bot, aktion.ding, aktion.menge, { abbruch, melde: this.o.melde, protokoll: this.o.protokoll })
       this.o.laufbericht?.beobachte(inventarVon(this.bot))
       if (abbruch.abgebrochen || ergebnis.art === 'abgebrochen') return null
+      if (ergebnis.art === 'nichtGefunden') {
+        this.o.protokoll?.(`Vorhaben: ${ergebnis.text}`)
+        const hier = this.position()
+        this.besuche(hier)
+        this.fehlschlag = zaehleFehlschlag(this.fehlschlag, { art: 'nichtGefunden', ding: ergebnis.material, wo: hier })
+        this.letzte = '' // zählt als Fehlschlag, nicht als Wiederholung
+        continue
+      }
+      if (ergebnis.art === 'fertig') this.fehlschlag = zaehleFehlschlag(this.fehlschlag, { art: 'erfolg' })
       const scheitern = ergebnis.art === 'fehlt' ? `Mir fehlen ${ergebnis.text}.`
-        : ergebnis.art === 'nichtGefunden' ? ergebnis.text
         : ergebnis.art === 'keinPlatz' ? 'Ich finde keinen Platz für die Werkbank.'
         : null
       if (scheitern) return { grund: 'gescheitert', text: `${scheitern} Ich höre mit dem Vorhaben auf.` }

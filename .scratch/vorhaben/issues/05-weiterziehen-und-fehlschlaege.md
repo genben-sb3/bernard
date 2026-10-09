@@ -6,13 +6,13 @@ Der Zustand des Entscheiders enthält dafür die jüngsten Fehlschläge: was, wo
 
 **Blocked by:** 01 (Vorhaben starten und Stufe 1 erreichen)
 
-**Status:** ready-for-agent
+**Status:** erledigt
 
-- [ ] Unit-Tests für den Entscheider:
+- [x] Unit-Tests für den Entscheider:
   - nach einem „nicht gefunden“ → weiterziehen
   - die Richtung meidet schon besuchte Gegenden
   - nach mehrmaligem Fehlschlag desselben Dings → melden und pausieren
   - nach einem Erfolg ist der Fehlschlag-Zähler für dieses Ding zurückgesetzt
-- [ ] Szenario (flache Welt): Bäume stehen nur außerhalb der Suchreichweite vom Start. Bernard zieht weiter, findet sie und erreicht Stufe 1.
-- [ ] Szenario: Es gibt keinen Stein in der Welt. Bernard meldet nach einigen Versuchen, dass er keinen findet, und das Vorhaben ist pausiert, ohne Endlosschleife.
-- [ ] Wenn Ticket 03 schon fertig ist, landen Weiterziehen und Aufgeben im Laufbericht
+- [x] Szenario (flache Welt): Bäume stehen nur außerhalb der Suchreichweite vom Start. Bernard zieht weiter, findet sie und erreicht Stufe 1.
+- [x] Szenario: Es gibt keinen Stein in der Welt. Bernard meldet nach einigen Versuchen, dass er keinen findet, und das Vorhaben ist pausiert, ohne Endlosschleife.
+- [x] Wenn Ticket 03 schon fertig ist, landen Weiterziehen und Aufgeben im Laufbericht

@@ -70,4 +70,15 @@ describe('Laufbericht', () => {
     expect(eintraege[0]).toMatchObject({ spielzeit: 1020, echtzeit: '2026-10-09T10:00:01.000Z', sekunden: 0 })
     expect(eintraege[1]).toMatchObject({ spielzeit: 1040, echtzeit: '2026-10-09T10:00:02.000Z', sekunden: 1 })
   })
+
+  it('hält Weiterziehen und Aufgeben fest', () => {
+    const { eintraege, laufbericht } = bericht()
+    laufbericht.start(1, {})
+    laufbericht.weiterziehen('holz', { x: 1, z: 2 }, { x: 41, z: 2 })
+    laufbericht.aufgeben('stein', 3)
+    expect(eintraege.slice(1).map(ohneZeit)).toEqual([
+      { art: 'weiterziehen', ding: 'holz', von: { x: 1, z: 2 }, nach: { x: 41, z: 2 } },
+      { art: 'aufgeben', ding: 'stein', fehlschlaege: 3 },
+    ])
+  })
 })

@@ -1,6 +1,7 @@
 // Der Laufbericht: Meilensteine eines Vorhabens mit Spiel- und Echtzeit, für Experimente und zum Vergleichen.
 // Pur: bekommt Inventare und schreibt Einträge, woanders landen sie in einer Datei.
 import type { DingName } from './dinge'
+import type { Ort } from './entscheider'
 import { aktuelleStufe, anzahl, STUFEN, type Inventar } from './stufen'
 
 export type Endgrund = 'zielErreicht' | 'stufeNichtUmgesetzt' | 'vergessen' | 'abgebrochen' | 'gescheitert' | 'zeitlimit'
@@ -17,6 +18,10 @@ export type Eintrag = {
   /** Ein Ding des Soll-Inventars ist zum ersten Mal in der verlangten Menge da. */
   | { art: 'erfuellt'; ding: DingName; menge: number }
   | { art: 'stufe'; von: number; nach: number }
+  /** `ding` war in der Nähe nicht zu finden, Bernard sucht woanders. */
+  | { art: 'weiterziehen'; ding: DingName; von: Ort; nach: Ort }
+  /** `ding` war mehrmals hintereinander nicht zu finden: Bernard meldet sich und pausiert das Vorhaben. */
+  | { art: 'aufgeben'; ding: DingName; fehlschlaege: number }
   | { art: 'ende'; grund: Endgrund; stufe: number }
 )
 
@@ -60,6 +65,12 @@ export function erstelleLaufbericht(schreibe: (eintrag: Eintrag) => void, uhr: U
       const neu = aktuelleStufe(inventar)
       if (neu !== stufe) eintragen({ art: 'stufe', von: stufe, nach: neu })
       stufe = neu
+    },
+    weiterziehen(ding: DingName, von: Ort, nach: Ort) {
+      eintragen({ art: 'weiterziehen', ding, von, nach })
+    },
+    aufgeben(ding: DingName, fehlschlaege: number) {
+      eintragen({ art: 'aufgeben', ding, fehlschlaege })
     },
     ende(grund: Endgrund, inventar: Inventar) {
       eintragen({ art: 'ende', grund, stufe: aktuelleStufe(inventar) })
