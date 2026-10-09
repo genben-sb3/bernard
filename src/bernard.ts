@@ -3,7 +3,10 @@ import mineflayer, { type Bot } from 'mineflayer'
 import pathfinderPkg from 'mineflayer-pathfinder'
 import { GoalHinterher } from './ziele'
 import { anBernard, erkenneBefehl, istKumpel, type Material, type Nachricht } from './befehle'
-import { MATERIALIEN, sammle, type Abbruch, type Sammelergebnis } from './sammeln'
+import { crafte } from './craften'
+import { DINGE, mitMenge } from './dinge'
+import { antwortZumGeben, beschreibeInventar, gib, type Geben } from './inventar'
+import { sammle, type Abbruch, type Sammelergebnis } from './sammeln'
 
 const { pathfinder, Movements, goals } = pathfinderPkg
 
@@ -90,9 +93,33 @@ export function starteBernard(optionen: BernardOptionen): Bot {
       case 'sammeln': {
         const aufgabe: Abbruch = { abgebrochen: false }
         laufendeAufgabe = aufgabe
-        const name = MATERIALIEN[befehl.material].name
-        antworte(bot, nachricht, `Okay, ich hole ${befehl.menge} ${name}.`)
+        antworte(bot, nachricht, `Okay, ich hole ${mitMenge(befehl.material, befehl.menge)}.`)
         void sammleUndMelde(bot, befehl.material, befehl.menge, aufgabe, nachricht, optionen.protokoll)
+        return
+      }
+      case 'inventar':
+        return antworte(bot, nachricht, beschreibeInventar(bot))
+      case 'geben': {
+        if (!ziel) return keinSichtkontakt(bot, kumpel)
+        const aufgabe: Abbruch = { abgebrochen: false }
+        laufendeAufgabe = aufgabe
+        const sag = (ergebnis: Geben) => { if (!aufgabe.abgebrochen) antworte(bot, nachricht, antwortZumGeben(ergebnis, befehl.ding, befehl.menge)) }
+        void gib(bot, ziel, befehl.ding, befehl.menge, sag, optionen.protokoll)
+          .then(ergebnis => { if (ergebnis.art !== 'gegeben') sag(ergebnis) })
+          .catch(fehler => meldeFehler(bot, nachricht, aufgabe, 'Beim Geben', fehler, optionen.protokoll))
+        return
+      }
+      case 'craften': {
+        const aufgabe: Abbruch = { abgebrochen: false }
+        laufendeAufgabe = aufgabe
+        void crafte(bot, befehl.ding, befehl.menge, aufgabe, text => antworte(bot, nachricht, text), optionen.protokoll)
+          .then(ergebnis => {
+            if (aufgabe.abgebrochen) return
+            if (ergebnis.art === 'fertig') antworte(bot, nachricht, `Fertig: ${mitMenge(befehl.ding, ergebnis.anzahl)}!`)
+            else if (ergebnis.art === 'fehlt') antworte(bot, nachricht, `Dafür fehlen mir ${ergebnis.text}.`)
+            else if (ergebnis.art === 'keinPlatz') antworte(bot, nachricht, 'Ich finde keinen Platz für die Werkbank.')
+          })
+          .catch(fehler => meldeFehler(bot, nachricht, aufgabe, 'Beim Craften', fehler, optionen.protokoll))
         return
       }
     }
@@ -109,7 +136,7 @@ export function starteBernard(optionen: BernardOptionen): Bot {
 
 async function sammleUndMelde(bot: Bot, material: Material, menge: number, aufgabe: Abbruch,
   nachricht: Nachricht, protokoll?: (text: string) => void) {
-  const name = MATERIALIEN[material].name
+  const ding = DINGE[material]
   let ergebnis: Sammelergebnis
   try {
     ergebnis = await sammle(bot, material, menge, aufgabe, protokoll)
@@ -119,7 +146,7 @@ async function sammleUndMelde(bot: Bot, material: Material, menge: number, aufga
     return
   }
   if (aufgabe.abgebrochen || ergebnis.art === 'abgebrochen') return
-  if (ergebnis.art === 'werkzeugFehlt') return antworte(bot, nachricht, `Für ${name} brauche ich ${ergebnis.werkzeug}.`)
+  if (ergebnis.art === 'werkzeugFehlt') return antworte(bot, nachricht, `Für ${ding.mehrzahl} brauche ich ${ergebnis.werkzeug}.`)
 
   // Zurück zum Kumpel, dann melden
   const kumpel = bot.players[nachricht.absender]?.entity
@@ -127,8 +154,14 @@ async function sammleUndMelde(bot: Bot, material: Material, menge: number, aufga
     await bot.pathfinder.goto(new goals.GoalNear(kumpel.position.x, kumpel.position.y, kumpel.position.z, 2)).catch(() => {})
   }
   if (aufgabe.abgebrochen) return
-  if (ergebnis.art === 'fertig') antworte(bot, nachricht, `Fertig, ich habe ${ergebnis.anzahl} ${name}!`)
-  else antworte(bot, nachricht, `Ich finde hier kein ${name} mehr. Ich habe ${ergebnis.anzahl} Stück.`)
+  if (ergebnis.art === 'fertig') antworte(bot, nachricht, `Fertig, ich habe ${mitMenge(material, ergebnis.anzahl)}!`)
+  else antworte(bot, nachricht, `Ich finde hier ${ding.kein} mehr. Ich habe ${mitMenge(material, ergebnis.anzahl)}.`)
+}
+
+function meldeFehler(bot: Bot, nachricht: Nachricht, aufgabe: Abbruch, wobei: string, fehler: unknown,
+  protokoll?: (text: string) => void) {
+  protokoll?.(`${wobei} fehlgeschlagen: ${fehler instanceof Error ? fehler.stack : fehler}`)
+  if (!aufgabe.abgebrochen) antworte(bot, nachricht, `${wobei} ist etwas schiefgegangen.`)
 }
 
 function keinSichtkontakt(bot: Bot, kumpel: string) {

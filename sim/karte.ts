@@ -47,7 +47,7 @@ export function zeichneKarte(optionen: {
   const bereich = optionen.bereich ?? bereichAus(optionen.proben)
   const breite = (bereich.maxX - bereich.minX + 1) * PIXEL_PRO_BLOCK
   const hoehe = (bereich.maxZ - bereich.minZ + 1) * PIXEL_PRO_BLOCK
-  const kopf = 34
+  const kopf = 52
   const canvas = createCanvas(breite, hoehe + kopf)
   const g = canvas.getContext('2d')
 
@@ -145,10 +145,10 @@ export function zeichneKarte(optionen: {
     const w = g.measureText(name).width
     lx -= w
     g.fillStyle = '#ffffff'
-    g.fillText(name, lx, 21)
+    g.fillText(name, lx, 43)
     lx -= 16
     g.fillStyle = farbe
-    g.fillRect(lx, 11, 11, 11)
+    g.fillRect(lx, 33, 11, 11)
     lx -= 14
   }
 

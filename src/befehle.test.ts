@@ -63,3 +63,47 @@ describe('erkenneBefehl – sammeln', () => {
     expect(erkenneBefehl('hol 5 diamanten')).toBeNull()
   })
 })
+
+describe('erkenneBefehl – Inventar', () => {
+  it.each(['was hast du dabei', 'Was hast du?', 'inventar', 'zeig dein inventar', 'inventory', 'what do you have'])('%s', text => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'inventar' })
+  })
+})
+
+describe('erkenneBefehl – geben', () => {
+  it.each([
+    ['gib mir 5 holz', 'holz', 5],
+    ['gib mir eine Werkbank', 'werkbank', 1],
+    ['gib mir die Holzspitzhacke', 'holzspitzhacke', 'alle'],
+    ['gib mir holz', 'holz', 'alle'],
+    ['give me 3 stone', 'stein', 3],
+    ['gib mir zwei stöcke', 'stoecke', 2],
+  ])('%s → %s × %s', (text, ding, menge) => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'geben', ding, menge })
+  })
+
+  it.each(['gib mir alles', 'give me everything', 'gib mir all deine sachen'])('%s → alles', text => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'geben', ding: null, menge: 'alle' })
+  })
+
+  it('kennt unbekannte Dinge nicht', () => {
+    expect(erkenneBefehl('gib mir 3 diamanten')).toBeNull()
+  })
+})
+
+describe('erkenneBefehl – craften', () => {
+  it.each([
+    ['mach 4 bretter', 'bretter', 4],
+    ['crafte eine Werkbank', 'werkbank', 1],
+    ['bau mir eine Holzspitzhacke', 'holzspitzhacke', 1],
+    ['craft 2 sticks', 'stoecke', 2],
+    ['mach stöcke', 'stoecke', 1],
+    ['stell einen ofen her', 'ofen', 1],
+  ])('%s → %s × %i', (text, ding, menge) => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'craften', ding, menge })
+  })
+
+  it('craftet nur, was man herstellen kann', () => {
+    expect(erkenneBefehl('mach 3 holz')).toBeNull()
+  })
+})

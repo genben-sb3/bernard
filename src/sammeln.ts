@@ -8,8 +8,6 @@ import type { Material } from './befehle'
 const { goals, Movements } = pathfinderPkg
 
 type MaterialArt = {
-  /** So nennt Bernard es im Chat. */
-  name: string
   block: (name: string) => boolean
   gegenstand: (name: string) => boolean
   /** Nur Stämme natürlich gewachsener Bäume, nie Gebautes. */
@@ -22,13 +20,13 @@ const istStamm = (n: string) => /_(log|stem)$/.test(n) && !n.startsWith('strippe
 const SPITZHACKE = { name: 'eine Spitzhacke', passt: (n: string) => n.endsWith('_pickaxe') }
 
 export const MATERIALIEN: Record<Material, MaterialArt> = {
-  holz: { name: 'Holz', block: istStamm, gegenstand: istStamm, nurBaeume: true },
-  eichenholz: { name: 'Eichenholz', block: n => n === 'oak_log', gegenstand: n => n === 'oak_log', nurBaeume: true },
-  birkenholz: { name: 'Birkenholz', block: n => n === 'birch_log', gegenstand: n => n === 'birch_log', nurBaeume: true },
-  fichtenholz: { name: 'Fichtenholz', block: n => n === 'spruce_log', gegenstand: n => n === 'spruce_log', nurBaeume: true },
-  stein: { name: 'Stein', block: n => n === 'stone' || n === 'cobblestone', gegenstand: n => n === 'cobblestone', werkzeug: SPITZHACKE },
-  erde: { name: 'Erde', block: n => n === 'dirt' || n === 'grass_block', gegenstand: n => n === 'dirt' },
-  sand: { name: 'Sand', block: n => n === 'sand', gegenstand: n => n === 'sand' },
+  holz: { block: istStamm, gegenstand: istStamm, nurBaeume: true },
+  eichenholz: { block: n => n === 'oak_log', gegenstand: n => n === 'oak_log', nurBaeume: true },
+  birkenholz: { block: n => n === 'birch_log', gegenstand: n => n === 'birch_log', nurBaeume: true },
+  fichtenholz: { block: n => n === 'spruce_log', gegenstand: n => n === 'spruce_log', nurBaeume: true },
+  stein: { block: n => n === 'stone' || n === 'cobblestone', gegenstand: n => n === 'cobblestone', werkzeug: SPITZHACKE },
+  erde: { block: n => n === 'dirt' || n === 'grass_block', gegenstand: n => n === 'dirt' },
+  sand: { block: n => n === 'sand', gegenstand: n => n === 'sand' },
 }
 
 const SUCHRADIUS = 48
@@ -220,7 +218,8 @@ async function baueAb(bot: Bot, block: Block, art: MaterialArt, hinlaufen = true
  */
 async function hebeAuf(bot: Bot, stelle: Vec3, art: MaterialArt, abbruch: Abbruch, radius = 6,
   protokoll: (text: string) => void = () => {}) {
-  await new Promise(r => setTimeout(r, 1200)) // fallen und liegen lassen
+  // Stämme fallen aus bis zu 5 Blöcken Höhe, alles andere liegt fast sofort
+  await new Promise(r => setTimeout(r, art.nurBaeume ? 1200 : 400))
   const versuche = new Map<number, number>()
   for (let i = 0; i < 16 && !abbruch.abgebrochen; i++) {
     const gegenstand = bot.nearestEntity(e =>
@@ -230,7 +229,8 @@ async function hebeAuf(bot: Bot, stelle: Vec3, art: MaterialArt, abbruch: Abbruc
     versuche.set(gegenstand.id, (versuche.get(gegenstand.id) ?? 0) + 1)
     const p = gegenstand.position
     protokoll(`Aufheben: ${itemName(gegenstand)} bei ${p.floored()}`)
-    await mitZeitlimit(bot.pathfinder.goto(new goals.GoalNearXZ(p.x, p.z, 0.5)), 6000).catch(() => bot.pathfinder.setGoal(null))
+    // Pfad-Knoten sind ganze Blöcke: in den Block stellen, in dem der Gegenstand liegt
+    await mitZeitlimit(bot.pathfinder.goto(new goals.GoalXZ(Math.floor(p.x), Math.floor(p.z))), 6000).catch(() => bot.pathfinder.setGoal(null))
     await new Promise(r => setTimeout(r, 300))
   }
 }

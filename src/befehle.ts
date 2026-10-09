@@ -1,10 +1,15 @@
 // Erkennt Befehle im Chat (Schnellweg ohne KI).
+import { DINGE, dingAusWort, type DingName } from './dinge'
 
 export type Befehl =
   | { art: 'folgen' }
   | { art: 'stopp' }
   | { art: 'kommHer' }
   | { art: 'sammeln'; menge: number; material: Material; mengeGeraten: boolean }
+  | { art: 'inventar' }
+  /** ding null = alles; menge 'alle' = alles von diesem Ding */
+  | { art: 'geben'; ding: DingName | null; menge: number | 'alle' }
+  | { art: 'craften'; ding: DingName; menge: number }
 
 export type Material = 'holz' | 'eichenholz' | 'birkenholz' | 'fichtenholz' | 'stein' | 'erde' | 'sand'
 
@@ -21,6 +26,30 @@ const MATERIAL_WOERTER: Record<string, Material> = {
 
 /** Menge, wenn der Kumpel keine nennt (Bernard rät und sagt es an). */
 export const STANDARDMENGE = 16
+
+const ZAHLWOERTER: Record<string, number> = {
+  ein: 1, eine: 1, einen: 1, einem: 1, a: 1, an: 1, one: 1,
+  zwei: 2, two: 2, drei: 3, three: 3, vier: 4, four: 4, 'fünf': 5, fuenf: 5, five: 5,
+  sechs: 6, six: 6, sieben: 7, seven: 7, acht: 8, eight: 8, neun: 9, nine: 9, zehn: 10, ten: 10,
+}
+const ARTIKEL = /^(die|den|das|der|dein|deine|deinen|the|your|some)$/
+
+/** Zerlegt „5 holz“, „eine werkbank“, „die holzspitzhacke“ in Menge (oder null) und Ding. */
+function mengeUndDing(rest: string): { menge: number | null; ding: DingName } | null {
+  const woerter = rest.split(' ')
+  let menge: number | null = null
+  if (/^\d+$/.test(woerter[0])) menge = Number(woerter.shift())
+  else if (ZAHLWOERTER[woerter[0]] !== undefined) menge = ZAHLWOERTER[woerter.shift()!]
+  else if (ARTIKEL.test(woerter[0])) woerter.shift()
+  if (/^(stück|stueck|stk)$/.test(woerter[0])) woerter.shift()
+  const ding = dingAusWort(woerter.join(' '))
+  return ding ? { menge, ding } : null
+}
+
+const INVENTAR = /^(was hast du( dabei| bei dir| im inventar)?|(zeig )?(dein |mir dein )?inventar|inventory|what do you have|what('s| is) in your inventory)$/
+const GEBEN = /^(gib|give)( mir| me) (.+)$/
+const ALLES = /^(alles|everything|all deine sachen|all your stuff|all your items)$/
+const CRAFTEN = /^(mach|mache|crafte|craft|bau|baue|stell)( mir| me)? (.+?)( her)?$/
 
 const SAMMELN = /^(hol|hole|sammle|sammel|bring|get|collect|gather)( mir| me)? (?:(\d+) )?(?:(?:stück|stueck|stk) )?(\S+)$/
 
@@ -49,6 +78,19 @@ export function anBernard(nachricht: Nachricht, name = 'Bernard'): string | null
 /** Erkennt einen Befehl im Text (ohne Anrede). Liefert null, wenn der Schnellweg ihn nicht kennt. */
 export function erkenneBefehl(text: string): Befehl | null {
   const normal = text.toLowerCase().replace(/[.!?]+$/, '').replace(/\s+/g, ' ').trim()
+  if (INVENTAR.test(normal)) return { art: 'inventar' }
+  const geben = normal.match(GEBEN)
+  if (geben) {
+    if (ALLES.test(geben[3])) return { art: 'geben', ding: null, menge: 'alle' }
+    const was = mengeUndDing(geben[3])
+    return was ? { art: 'geben', ding: was.ding, menge: was.menge ?? 'alle' } : null
+  }
+  const craften = normal.match(CRAFTEN)
+  if (craften) {
+    const was = mengeUndDing(craften[3])
+    if (!was || !('herstellen' in DINGE[was.ding])) return null
+    return { art: 'craften', ding: was.ding, menge: was.menge ?? 1 }
+  }
   const sammeln = normal.match(SAMMELN)
   if (sammeln) {
     const material = MATERIAL_WOERTER[sammeln[4]]
