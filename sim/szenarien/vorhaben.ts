@@ -1,4 +1,6 @@
 // Szenario (Vorhaben-Ticket 01): Bernard spielt mit leerem Inventar selbstständig bis zur Steinzeit.
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { Rcon } from 'rcon-client'
 import { Vec3 } from 'vec3'
 import type { Szenario } from '../szenario'
@@ -14,6 +16,12 @@ const SOLL: Array<[string, number]> = [
 
 async function anzahl(rcon: Rcon, gegenstand: string) {
   return Number((await rcon.send(`clear Bernard ${gegenstand} 0`)).match(/(\d+)/)?.[1] ?? 0)
+}
+
+/** Die Einträge aller Laufberichte im Ergebnisordner, nach Datei. */
+export function laufberichte(ordner: string): Array<Array<Record<string, unknown>>> {
+  return readdirSync(ordner).filter(n => n.startsWith('laufbericht-')).sort()
+    .map(n => readFileSync(join(ordner, n), 'utf8').trim().split('\n').filter(Boolean).map(z => JSON.parse(z)))
 }
 
 export const vorhaben: Szenario = {
@@ -34,7 +42,7 @@ export const vorhaben: Szenario = {
     Beobachter: [8, 2],
   },
 
-  async ablauf({ rcon, beobachter: b, spieler }) {
+  async ablauf({ ordner, rcon, beobachter: b, spieler }) {
     const ben = spieler.Ben
     const vonBernard = (seit: number) => b.chatSeit(seit).filter(c => c.von === 'Bernard')
     const warteAufChat = async (seit: number, muster: RegExp, maxMs: number) => {
@@ -65,6 +73,14 @@ export const vorhaben: Szenario = {
     b.pruefe('Keine Werkbank bleibt stehen', werkbaenke.length === 0, werkbaenke.length === 0 ? 'keine' : `stehen bei ${werkbaenke.join(', ')}`)
     b.notiere(`Bernards Meldungen: ${vonBernard(beginn).map(c => `„${c.text}“`).join(' ')}`)
     b.karte('1 – Bis zur Steinzeit', beginn)
+
+    const [bericht = []] = laufberichte(ordner)
+    const arten = bericht.map(e => e.art === 'erfuellt' ? `erfuellt:${e.ding}` : e.art === 'ende' ? `ende:${e.grund}` : e.art)
+    const erwartet = ['start', ...['steinspitzhacke', 'werkbank', 'steinaxt', 'steinschwert', 'ofen', 'stein', 'holz'].map(d => `erfuellt:${d}`), 'stufe', 'ende:zielErreicht']
+    const fehlen = erwartet.filter(a => !arten.includes(a))
+    const mitZeit = bericht.every(e => typeof e.spielzeit === 'number' && typeof e.echtzeit === 'string' && typeof e.sekunden === 'number')
+    b.pruefe('Der Laufbericht ist vollständig (Start, jedes Soll-Ding, Stufenwechsel, Ende mit Grund, alles mit Zeiten)',
+      fehlen.length === 0 && mitZeit, `Einträge: ${arten.join(', ') || '–'}${fehlen.length ? `; fehlt: ${fehlen.join(', ')}` : ''}${mitZeit ? '' : '; Zeiten fehlen'}`)
 
     // 2. Höheres Ziel als umgesetzt
     b.setzePhase('Besieg den Enderdrachen')

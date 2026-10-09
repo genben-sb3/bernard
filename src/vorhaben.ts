@@ -3,6 +3,7 @@ import type { Bot } from 'mineflayer'
 import { besorge, type Besorgkontext } from './besorgen'
 import { naechsterSchritt, type Aktion } from './entscheider'
 import { mitMenge } from './dinge'
+import type { Laufbericht } from './laufbericht'
 import { aktuelleStufe, STUFEN, type Inventar } from './stufen'
 
 export type Vorhabenende =
@@ -19,7 +20,9 @@ export function inventarVon(bot: Bot): Inventar {
   return inventar
 }
 
-export async function verfolgeVorhaben(bot: Bot, zielstufe: number, k: Besorgkontext): Promise<Vorhabenende> {
+export type Vorhabenkontext = Besorgkontext & { laufbericht?: Laufbericht }
+
+export async function verfolgeVorhaben(bot: Bot, zielstufe: number, k: Vorhabenkontext): Promise<Vorhabenende> {
   let letzte = ''
   let wiederholungen = 0
   for (;;) {
@@ -37,6 +40,7 @@ export async function verfolgeVorhaben(bot: Bot, zielstufe: number, k: Besorgkon
     }
 
     const ergebnis = await besorge(bot, aktion.ding, aktion.menge, k)
+    k.laufbericht?.beobachte(inventarVon(bot))
     if (k.abbruch.abgebrochen || ergebnis.art === 'abgebrochen') return { art: 'abgebrochen' }
     if (ergebnis.art === 'fehlt') return { art: 'gescheitert', text: `Mir fehlen ${ergebnis.text}.` }
     if (ergebnis.art === 'nichtGefunden') return { art: 'gescheitert', text: ergebnis.text }

@@ -11,9 +11,10 @@ import { sammeln } from './szenarien/sammeln'
 import { besorgen } from './szenarien/besorgen'
 import { werkzeug } from './szenarien/werkzeug'
 import { vorhaben } from './szenarien/vorhaben'
+import { zeitlimit } from './szenarien/zeitlimit'
 import { Testspieler, warte } from './testspieler'
 
-const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, vorhaben }
+const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, vorhaben, zeitlimit }
 
 const VERBINDUNG = { host: 'localhost', port: 25565, version: '26.1' }
 const BODEN = -60
@@ -48,6 +49,7 @@ try {
   for (const b of szenario.aufbau) await befehl(b)
 
   const bernard = starteBernard({ ...VERBINDUNG, name: 'Bernard', kumpel: szenario.kumpel,
+    laufberichtOrdner: ordner, zeitlimitMs: szenario.zeitlimitMs,
     protokoll: text => beobachter.notiere(`[Bernard intern] ${text}`) })
   bots.push(bernard)
   bernard.on('kicked', grund => beobachter.notiere(`Bernard wurde rausgeworfen: ${JSON.stringify(grund)}`))
@@ -72,7 +74,7 @@ try {
   beobachter.starteAufzeichnung()
   await warte(500)
 
-  await szenario.ablauf({ rcon, beobachter, bernard, spieler })
+  await szenario.ablauf({ ordner, rcon, beobachter, bernard, spieler })
   await warte(500)
   beobachter.karte('Gesamter Lauf')
 } catch (fehler) {

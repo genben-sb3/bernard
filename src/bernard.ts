@@ -11,6 +11,9 @@ import { antwortZumGeben, beschreibeInventar, gib, type Geben } from './inventar
 import { sammle, type Sammelergebnis } from './sammeln'
 import { aktuelleStufe, bisZu, STUFEN } from './stufen'
 import { inventarVon, verfolgeVorhaben } from './vorhaben'
+import { erstelleLaufbericht, type Endgrund } from './laufbericht'
+import { appendFileSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 
 const { pathfinder, goals } = pathfinderPkg
 
@@ -22,6 +25,10 @@ export type BernardOptionen = {
   kumpel: string[]
   /** Optional: bekommt interne Abläufe mit (z. B. für die Simulation). */
   protokoll?: (text: string) => void
+  /** Ordner für Laufberichte (eine Datei pro Vorhaben). Ohne: kein Laufbericht. */
+  laufberichtOrdner?: string
+  /** Optional: Nach so vielen Millisekunden Echtzeit endet jedes Vorhaben („Zeitlimit“). */
+  zeitlimitMs?: number
 }
 
 const TASTEN = ['forward', 'back', 'left', 'right', 'jump', 'sprint', 'sneak'] as const
@@ -134,15 +141,35 @@ export function starteBernard(optionen: BernardOptionen): Bot {
         const aufgabe: Abbruch = { abgebrochen: false }
         laufendeAufgabe = aufgabe
         antworte(bot, nachricht, ziel === STUFEN.length ? 'Okay, auf zum Enderdrachen!' : `Okay, ich spiele bis ${bisZu(ziel)}.`)
-        void verfolgeVorhaben(bot, ziel, { abbruch: aufgabe, melde: text => antworte(bot, nachricht, text), protokoll: optionen.protokoll })
+
+        const laufbericht = starteLaufbericht(bot, ziel, optionen)
+        let beendet = false
+        const beende = (grund: Endgrund) => {
+          if (beendet) return
+          beendet = true
+          clearTimeout(zeitlimit)
+          laufbericht?.ende(grund, inventarVon(bot))
+        }
+        const zeitlimit = optionen.zeitlimitMs === undefined ? undefined : setTimeout(() => {
+          if (aufgabe.abgebrochen) return
+          beende('zeitlimit')
+          if (laufendeAufgabe === aufgabe) brichAb()
+          antworte(bot, nachricht, 'Die Zeit ist um, ich höre mit dem Vorhaben auf.')
+        }, optionen.zeitlimitMs)
+
+        void verfolgeVorhaben(bot, ziel, { abbruch: aufgabe, melde: text => antworte(bot, nachricht, text), protokoll: optionen.protokoll, laufbericht })
           .then(ende => {
+            beende(ende.art === 'fertig' ? ende.grund : ende.art)
             if (aufgabe.abgebrochen) return
             if (ende.art === 'gescheitert') antworte(bot, nachricht, `${ende.text} Ich höre mit dem Vorhaben auf.`)
             else if (ende.art === 'fertig' && ende.grund === 'stufeNichtUmgesetzt') {
               antworte(bot, nachricht, `Weiter als bis ${bisZu(ende.stufe)} kann ich noch nicht.`)
             }
           })
-          .catch(fehler => meldeFehler(bot, nachricht, aufgabe, 'Beim Vorhaben', fehler, optionen.protokoll))
+          .catch(fehler => {
+            beende('gescheitert')
+            meldeFehler(bot, nachricht, aufgabe, 'Beim Vorhaben', fehler, optionen.protokoll)
+          })
         return
       }
     }
@@ -179,6 +206,19 @@ async function sammleUndMelde(bot: Bot, material: Material, menge: number, aufga
   if (aufgabe.abgebrochen) return
   if (ergebnis.art === 'fertig') antworte(bot, nachricht, `Fertig, ich habe ${mitMenge(material, ergebnis.anzahl)}!`)
   else antworte(bot, nachricht, `Ich finde hier ${ding.kein} mehr. Ich habe ${mitMenge(material, ergebnis.anzahl)}.`)
+}
+
+/** Legt den Laufbericht eines Vorhabens an: eine Datei mit einem JSON-Eintrag pro Zeile. */
+function starteLaufbericht(bot: Bot, zielstufe: number, optionen: BernardOptionen) {
+  const ordner = optionen.laufberichtOrdner
+  if (!ordner) return undefined
+  mkdirSync(ordner, { recursive: true })
+  const datei = join(ordner, `laufbericht-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}-stufe${zielstufe}.jsonl`)
+  optionen.protokoll?.(`Laufbericht: ${datei}`)
+  const laufbericht = erstelleLaufbericht(eintrag => appendFileSync(datei, JSON.stringify(eintrag) + '\n'),
+    () => ({ spielzeit: Number(bot.time.age), echtzeit: new Date() }))
+  laufbericht.start(zielstufe, inventarVon(bot))
+  return laufbericht
 }
 
 /** Zurück zum Kumpel, z. B. bevor Bernard meldet, dass er fertig ist. */

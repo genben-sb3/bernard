@@ -4,3 +4,4 @@ server/
 server.log
 sim/ergebnisse/
 dist/
+config/laufberichte/

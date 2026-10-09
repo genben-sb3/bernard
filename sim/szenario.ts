@@ -6,6 +6,8 @@ import type { Position } from './protokoll'
 import type { Testspieler } from './testspieler'
 
 export type Kontext = {
+  /** Ergebnisordner dieses Laufs (dort liegen auch Bernards Laufberichte). */
+  ordner: string
   rcon: Rcon
   beobachter: Beobachter
   bernard: Bot
@@ -23,6 +25,8 @@ export type Szenario = {
   aufbau: string[]
   /** Startpositionen (x, z) nach dem Aufbau. */
   start: Record<string, [number, number]>
+  /** Optional: Zeitlimit für Vorhaben in diesem Szenario (Millisekunden Echtzeit). */
+  zeitlimitMs?: number
   ablauf: (k: Kontext) => Promise<void>
 }
 
