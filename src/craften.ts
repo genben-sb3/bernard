@@ -3,7 +3,9 @@ import type { Bot } from 'mineflayer'
 import type { Block } from 'prismarine-block'
 import pathfinderPkg from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
+import { halteAn, type Abbruch } from './auftrag'
 import { erstellePlanner, type Bestand } from './craftplan'
+import { baueAb, platziere, warumNichtPlatzieren } from './eingriffe'
 import { DINGE, nameFuer, type DingName } from './dinge'
 import { warteAufInventarRuhe } from './ruhe'
 
@@ -11,13 +13,14 @@ const { goals } = pathfinderPkg
 
 export type Craftergebnis =
   | { art: 'fertig'; anzahl: number }
-  | { art: 'fehlt'; text: string }
+  /** fehlt: Gegenstands-ID → Anzahl an Grundmaterial */
+  | { art: 'fehlt'; text: string; fehlt: Bestand }
   | { art: 'keinPlatz' }
   | { art: 'abgebrochen' }
 
 const WERKBANK_REICHWEITE = 4
 
-export async function crafte(bot: Bot, ding: DingName, menge: number, abbruch: { abgebrochen: boolean },
+export async function crafte(bot: Bot, ding: DingName, menge: number, abbruch: Abbruch,
   melde: (text: string) => void = () => {}, protokoll: (text: string) => void = () => {}): Promise<Craftergebnis> {
   const d = DINGE[ding]
   const ziele = ('herstellen' in d ? d.herstellen : []).map(n => bot.registry.itemsByName[n]?.id).filter((i): i is number => i !== undefined)
@@ -27,7 +30,7 @@ export async function crafte(bot: Bot, ding: DingName, menge: number, abbruch: {
   let werkbank = werkbankInDerNaehe(bot)
   const bekannt = (id: number) => Object.values(DINGE).some(x => x.passt(bot.registry.items[id].name))
   const plan = erstellePlanner(bot.registry, bekannt).plane(ziele, menge, bestand(bot), !!werkbank)
-  if (plan.art === 'fehlt') return { art: 'fehlt', text: beschreibeFehlendes(bot, plan.fehlt) }
+  if (plan.art === 'fehlt') return { art: 'fehlt', text: beschreibeFehlendes(bot, plan.fehlt), fehlt: plan.fehlt }
   if (plan.brauchtWerkbank && !werkbank) melde('Moment, ich stelle kurz eine Werkbank auf.')
   protokoll(`Craften: Plan ${plan.schritte.map(s => `${s.mal}× ${bot.registry.items[s.rezept.result.id].name}`).join(', ')}`)
 
@@ -51,7 +54,7 @@ export async function crafte(bot: Bot, ding: DingName, menge: number, abbruch: {
       await warteBisImInventar(bot, ergebnisId, erwartet)
     }
   } finally {
-    if (aufgestellt) await nimmWerkbankMit(bot, aufgestellt, protokoll)
+    if (aufgestellt) await nimmWerkbankMit(bot, aufgestellt, abbruch, protokoll)
   }
   return { art: 'fertig', anzahl: zaehle() - vorher }
 }
@@ -93,8 +96,9 @@ async function stelleWerkbankAuf(bot: Bot): Promise<Block | null> {
   for (const platz of plaetze) {
     const unten = bot.blockAt(platz.offset(0, -1, 0))
     if (bot.blockAt(platz)?.name !== 'air' || !unten || unten.boundingBox !== 'block') continue
+    if (warumNichtPlatzieren(bot, platz)) continue
     await bot.equip(item, 'hand')
-    await bot.placeBlock(unten, new Vec3(0, 1, 0))
+    await platziere(bot, unten, new Vec3(0, 1, 0))
     const gesetzt = bot.blockAt(platz)
     if (gesetzt?.name === 'crafting_table') return gesetzt
   }
@@ -102,17 +106,17 @@ async function stelleWerkbankAuf(bot: Bot): Promise<Block | null> {
 }
 
 /** Baut die selbst aufgestellte Werkbank wieder ab und hebt sie auf. */
-async function nimmWerkbankMit(bot: Bot, werkbank: Block, protokoll: (text: string) => void) {
+async function nimmWerkbankMit(bot: Bot, werkbank: Block, abbruch: Abbruch, protokoll: (text: string) => void) {
   try {
     const aktuell = bot.blockAt(werkbank.position)
     if (aktuell?.name !== 'crafting_table') return
     const vorher = anzahlVon(bot, bot.registry.itemsByName.crafting_table.id)
-    await bot.dig(aktuell, true)
+    await baueAb(bot, aktuell)
     for (let versuch = 0; versuch < 4 && anzahlVon(bot, bot.registry.itemsByName.crafting_table.id) <= vorher; versuch++) {
       await new Promise(r => setTimeout(r, 700)) // fallen und liegen lassen
       const drop = bot.nearestEntity(e => e.name === 'item' && e.position.distanceTo(werkbank.position) < 5)
       if (!drop) continue
-      await bot.pathfinder.goto(new goals.GoalXZ(Math.floor(drop.position.x), Math.floor(drop.position.z))).catch(() => bot.pathfinder.setGoal(null))
+      await bot.pathfinder.goto(new goals.GoalXZ(Math.floor(drop.position.x), Math.floor(drop.position.z))).catch(() => halteAn(bot, abbruch))
     }
     if (anzahlVon(bot, bot.registry.itemsByName.crafting_table.id) <= vorher) protokoll('Craften: Werkbank liegt noch herum')
   } catch (fehler) {

@@ -15,7 +15,7 @@ Testet Bernard auf einem lokalen Testserver, ohne dass ein Mensch mitspielen mus
 
 ```sh
 cd server && ../.tools/java/bin/java -Xmx2G -jar paper.jar --nogui   # Server starten
-npm run sim -- folgen                                                # Szenario laufen lassen (folgen, sammeln, werkzeug)
+npm run sim -- folgen                                                # Szenario laufen lassen (folgen, sammeln, werkzeug, besorgen)
 npx tsx sim/diagnose-wand.ts                                          # Wand-Diagnose: überall 0 Server-Korrekturen erwartet
 npx tsx sim/diagnose-werfen.ts                                        # Werfen/Craften: Server- und Bernard-Sicht aufs Inventar vergleichen
 node sim/rcon-befehl.mjs "list"                                      # beliebige Server-Befehle
@@ -35,4 +35,6 @@ Eine Datei in `sim/szenarien/` anlegen, die ein `Szenario` exportiert (Aufbau pe
 - **Inventar-Klicks (26.x)**: Jeder Klick trägt einen Zähler des Servers mit. Kommt er, während noch Updates vom letzten Schritt eintreffen, ignoriert der Server ihn stillschweigend (Craften hängt 20 s, „missing ingredient“). Vor Inventar-Aktionen `warteAufInventarRuhe` (`src/ruhe.ts`).
 - **Werfen**: Die neue Blickrichtung kennt der Server erst nach dem nächsten Bewegungspaket. Ohne ein paar Ticks Warten fliegt alles in die alte Laufrichtung. Geworfenes kann erst nach 2 s aufgehoben werden. Bernard lässt es deshalb direkt vor dem Kumpel fallen und tritt zurück, sonst hebt er es selbst wieder auf.
 - **Pfad-Knoten sind ganze Blöcke**: `GoalNearXZ(x, z, 0.3)` ist oft unerreichbar. Zum Aufheben `GoalXZ(floor(x), floor(z))` verwenden.
+- **Eingriffe in die Welt** laufen nur über `src/eingriffe.ts` (`baueAb`, `platziere`, `bewegungen`). Die Wegfindung setzt standardmäßig keine Gerüstblöcke. Nie direkt `bot.dig`/`bot.placeBlock` aufrufen und nie `new Movements` erzeugen.
+- **Abgebrochene Aufträge** dürfen die Wegfindung nicht stoppen (`halteAn` in `src/auftrag.ts`), sonst bremsen sie den neuen Befehl aus.
 - 3D-Screenshots gibt es nicht: prismarine-viewer kann nur Versionen bis 1.21.4 darstellen.

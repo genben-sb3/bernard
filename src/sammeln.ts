@@ -4,8 +4,10 @@ import type { Block } from 'prismarine-block'
 import pathfinderPkg from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
 import type { Material } from './befehle'
+import { halteAn, type Abbruch } from './auftrag'
+import { baueAb as baueAbZentral, bewegungen, warumNichtAbbauen } from './eingriffe'
 
-const { goals, Movements } = pathfinderPkg
+const { goals } = pathfinderPkg
 
 type MaterialArt = {
   block: (name: string) => boolean
@@ -38,7 +40,6 @@ export type Sammelergebnis =
   | { art: 'werkzeugFehlt'; werkzeug: string }
   | { art: 'abgebrochen'; anzahl: number }
 
-export type Abbruch = { abgebrochen: boolean }
 
 export function zaehle(bot: Bot, art: MaterialArt) {
   return bot.inventory.items().filter(i => art.gegenstand(i.name)).reduce((summe, i) => summe + i.count, 0)
@@ -70,8 +71,8 @@ export async function sammle(bot: Bot, material: Material, menge: number, abbruc
         await hebeAuf(bot, block.position, art, abbruch)
       }
     } catch (fehler) {
-      bot.pathfinder.setGoal(null)
-      if (bot.targetDigBlock) bot.stopDigging()
+      halteAn(bot, abbruch)
+      if (bot.targetDigBlock && !abbruch.abgebrochen) bot.stopDigging()
       if (abbruch.abgebrochen) return { art: 'abgebrochen', anzahl: gesammelt() }
       protokoll(`Sammeln: ${block.position} klappt nicht (${fehler instanceof Error ? fehler.message : fehler}), überspringe`)
       unerreichbar.add(block.position.toString())
@@ -92,7 +93,7 @@ async function faelleBaum(bot: Bot, stamm: Block, art: MaterialArt, abbruch: Abb
   const boden = unten.y
 
   const vorher = bot.pathfinder.movements
-  bot.pathfinder.setMovements(holzfaellerBewegungen(bot, vorher))
+  bot.pathfinder.setMovements(holzfaellerBewegungen(bot))
   try {
     await faelleSaeule(bot, stamm, x, boden, z, art, abbruch, protokoll)
   } finally {
@@ -104,12 +105,8 @@ async function faelleBaum(bot: Bot, stamm: Block, art: MaterialArt, abbruch: Abb
  * Bewegungen beim Baumfällen: wie sonst, aber natürliche Blätter dürfen weggeschlagen werden.
  * Bei kleinen Bäumen hängen die untersten Blätter auf Kopfhöhe direkt neben dem Stamm.
  */
-function holzfaellerBewegungen(bot: Bot, basis: InstanceType<typeof Movements>) {
-  const bewegungen = new Movements(bot)
-  bewegungen.allow1by1towers = basis.allow1by1towers
-  bewegungen.canDig = true
-  bewegungen.exclusionAreasBreak = [(b: Block) => (istNatuerlichesBlatt(b) ? 0 : 1000)]
-  return bewegungen
+function holzfaellerBewegungen(bot: Bot) {
+  return bewegungen(bot, { abbauenErlaubt: istNatuerlichesBlatt })
 }
 
 function istNatuerlichesBlatt(b: Block) {
@@ -120,7 +117,7 @@ function istNatuerlichesBlatt(b: Block) {
 
 async function faelleSaeule(bot: Bot, stamm: Block, x: number, boden: number, z: number, art: MaterialArt,
   abbruch: Abbruch, protokoll: (text: string) => void) {
-  await zumStamm(bot, x, boden, z, protokoll)
+  await zumStamm(bot, x, boden, z, abbruch, protokoll)
   for (let y = boden; y < boden + 16; y++) {
     if (abbruch.abgebrochen) return
     const block = bot.blockAt(new Vec3(x, y, z))
@@ -140,18 +137,18 @@ async function faelleSaeule(bot: Bot, stamm: Block, x: number, boden: number, z:
   }
   if (abbruch.abgebrochen) return
   // In die freie Stammsäule treten: dort landen die meisten Stämme
-  await mitZeitlimit(bot.pathfinder.goto(new goals.GoalBlock(x, boden, z)), 8000).catch(() => bot.pathfinder.setGoal(null))
+  await mitZeitlimit(bot.pathfinder.goto(new goals.GoalBlock(x, boden, z)), 8000).catch(() => halteAn(bot, abbruch))
   await hebeAuf(bot, new Vec3(x, boden, z), art, abbruch, 6, protokoll)
 }
 
 /** Neben den Stamm stellen. Die Wegsuche bricht gelegentlich ohne Grund ab; ein zweiter Versuch klappt dann. */
-async function zumStamm(bot: Bot, x: number, y: number, z: number, protokoll: (text: string) => void) {
+async function zumStamm(bot: Bot, x: number, y: number, z: number, abbruch: Abbruch, protokoll: (text: string) => void) {
   for (let versuch = 1; ; versuch++) {
     try {
       return await mitZeitlimit(bot.pathfinder.goto(new goals.GoalGetToBlock(x, y, z)), ZEITLIMIT_PRO_BLOCK_MS)
     } catch (fehler) {
-      bot.pathfinder.setGoal(null)
-      if (versuch >= 2) throw fehler
+      halteAn(bot, abbruch)
+      if (versuch >= 2 || abbruch.abgebrochen) throw fehler
       protokoll(`Sammeln: Weg zum Stamm bei ${x}/${y}/${z} klappt nicht (${fehler instanceof Error ? fehler.message : fehler}), neuer Versuch`)
     }
   }
@@ -175,6 +172,7 @@ function naechsterBlock(bot: Bot, art: MaterialArt, unerreichbar: Set<string>): 
     const block = bot.blockAt(pos)
     if (!block) continue
     if (art.nurBaeume && !istNatuerlicherBaum(bot, block)) continue
+    if (warumNichtAbbauen(bot, pos, block)) continue
     return block
   }
   return null
@@ -209,7 +207,7 @@ async function baueAb(bot: Bot, block: Block, art: MaterialArt, hinlaufen = true
   if (!aktuell || !art.block(aktuell.name)) return // inzwischen weg
   const werkzeug = bot.inventory.items().find(i => art.werkzeug?.passt(i.name) || (art.nurBaeume && i.name.endsWith('_axe')))
   if (werkzeug) await bot.equip(werkzeug, 'hand')
-  await bot.dig(aktuell, true)
+  await baueAbZentral(bot, aktuell)
 }
 
 /**
@@ -230,7 +228,7 @@ async function hebeAuf(bot: Bot, stelle: Vec3, art: MaterialArt, abbruch: Abbruc
     const p = gegenstand.position
     protokoll(`Aufheben: ${itemName(gegenstand)} bei ${p.floored()}`)
     // Pfad-Knoten sind ganze Blöcke: in den Block stellen, in dem der Gegenstand liegt
-    await mitZeitlimit(bot.pathfinder.goto(new goals.GoalXZ(Math.floor(p.x), Math.floor(p.z))), 6000).catch(() => bot.pathfinder.setGoal(null))
+    await mitZeitlimit(bot.pathfinder.goto(new goals.GoalXZ(Math.floor(p.x), Math.floor(p.z))), 6000).catch(() => halteAn(bot, abbruch))
     await new Promise(r => setTimeout(r, 300))
   }
 }

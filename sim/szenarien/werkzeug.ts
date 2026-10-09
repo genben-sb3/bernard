@@ -25,7 +25,7 @@ export const werkzeug: Szenario = {
     'baut damit Stein ab, sagt, was ihm für einen Ofen fehlt, und gibt Ben 3 Stein und dann alles.',
   spieler: ['Ben'],
   kumpel: ['Ben'],
-  aufbau: [`fill 6 ${BODEN} -6 8 ${BODEN} -4 stone`],
+  aufbau: [`fill 6 ${BODEN} -5 8 ${BODEN} -5 stone`], // genau 3 Stein: für den Ofen reicht es nicht
   start: {
     Bernard: [-2, 0],
     Ben: [0, 0],
@@ -99,10 +99,13 @@ export const werkzeug: Szenario = {
     b.setzePhase('Ofen (zu wenig Stein)')
     beginn = b.jetzt
     ben.sage('Bernard, mach einen Ofen')
-    const ofen = await warteAufChat(beginn, /fehlen|fertig|schief/i, 5000)
+    // Seit Ticket 001 versucht er erst, den Stein selbst zu holen; in der Nähe gibt es aber keinen mehr
+    const ofen = await warteAufChat(beginn, /finde|fehlen|fertig|schief/i, 30000)
     const erwartet = `${8 - bruchstein} Bruchstein`
-    b.pruefe('Bernard sagt, wie viel Stein für den Ofen fehlt', !!ofen && ofen.text.includes(erwartet),
-      ofen ? `„${ofen.text}“ (erwartet: ${erwartet})` : 'keine Antwort')
+    const holtErst = b.chatSeit(beginn).some(c => c.von === 'Bernard' && /hole ich erst/.test(c.text))
+    b.pruefe('Bernard versucht, den Stein für den Ofen zu holen, und sagt, wie viel fehlt',
+      holtErst && !!ofen && /keinen Bruchstein/.test(ofen.text) && ofen.text.includes(erwartet),
+      ofen ? `„${ofen.text}“ (erwartet: ${erwartet}${holtErst ? '' : '; keine Ansage „hole ich erst“'})` : 'keine Antwort')
 
     // 6. Geben
     b.setzePhase('3 Stein geben')

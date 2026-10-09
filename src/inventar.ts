@@ -2,6 +2,7 @@
 import type { Bot } from 'mineflayer'
 import type { Entity } from 'prismarine-entity'
 import pathfinderPkg from 'mineflayer-pathfinder'
+import { halteAn, type Abbruch } from './auftrag'
 import { DINGE, nameFuer, mitMenge, type DingName } from './dinge'
 import { warteAufInventarRuhe } from './ruhe'
 
@@ -34,7 +35,7 @@ export type Geben =
  * Läuft zum Kumpel und wirft ihm Sachen zu. `ding` null = alles; `menge` 'alle' = alles von diesem Ding.
  * Hat Bernard weniger als verlangt, gibt er, was er hat.
  */
-export async function gib(bot: Bot, kumpel: Entity, ding: DingName | null, menge: number | 'alle',
+export async function gib(bot: Bot, kumpel: Entity, ding: DingName | null, menge: number | 'alle', abbruch: Abbruch,
   beimWerfen: (ergebnis: Geben) => void = () => {}, protokoll: (text: string) => void = () => {}): Promise<Geben> {
   const passt = ding ? DINGE[ding].passt : () => true
   const vorrat = bot.inventory.items().filter(i => passt(i.name))
@@ -48,7 +49,7 @@ export async function gib(bot: Bot, kumpel: Entity, ding: DingName | null, menge
   try {
     await bot.pathfinder.goto(new goals.GoalNear(kumpel.position.x, kumpel.position.y, kumpel.position.z, 1.5))
   } catch {
-    bot.pathfinder.setGoal(null)
+    halteAn(bot, abbruch)
     return { art: 'nichtErreicht' }
   }
   await bot.lookAt(kumpel.position, true)
@@ -57,6 +58,7 @@ export async function gib(bot: Bot, kumpel: Entity, ding: DingName | null, menge
   await bot.waitForTicks(3)
   await warteAufInventarRuhe(bot)
 
+  if (abbruch.abgebrochen) return { art: 'nichtErreicht' }
   let uebrig = ziel
   for (const item of vorrat) {
     if (uebrig <= 0) break
@@ -68,7 +70,7 @@ export async function gib(bot: Bot, kumpel: Entity, ding: DingName | null, menge
   const ergebnis: Geben = { art: 'gegeben', anzahl: ziel - uebrig, alles: ziel === vorhanden && ding === null }
   beimWerfen(ergebnis)
   const weg = new goals.GoalInvert(new goals.GoalNear(kumpel.position.x, kumpel.position.y, kumpel.position.z, ABSTAND_NACH_WURF))
-  await mitZeitlimit(bot.pathfinder.goto(weg), 1800).catch(() => bot.pathfinder.setGoal(null))
+  await mitZeitlimit(bot.pathfinder.goto(weg), 1800).catch(() => halteAn(bot, abbruch))
   await new Promise(r => setTimeout(r, 500)) // Server-Antwort abwarten, damit das Inventar stimmt
   protokoll(`Geben: danach im Inventar ${bot.inventory.items().map(i => `${i.count} ${i.name}`).join(', ') || 'nichts'}`)
   return ergebnis

@@ -1,6 +1,6 @@
 # 001: Fehlendes Material fürs Craften selbst besorgen
 
-**Status:** offen · **Blockiert von:** – · **Version:** 1
+**Status:** erledigt (Branch `ticket-001-material-besorgen`) · **Blockiert von:** – · **Version:** 1
 
 ## Problem
 „Bernard, mach eine Holzspitzhacke“ ohne Holz im Inventar endet mit „Dafür fehlen mir 3 Holz.“ Ein Mitspieler erwartet, dass Bernard das Holz selbst holt und dann craftet.
@@ -18,3 +18,12 @@
 ## Fertig, wenn
 - Neues Simulations-Szenario: leeres Inventar, Bäume und Stein in der Nähe, „mach eine Steinspitzhacke“ → Bernard hat sie, keine Werkbank bleibt stehen, nichts liegt herum.
 - Szenario: kein Stein in der Nähe → klare Meldung, was fehlt, und keine Endlosschleife.
+
+## Umsetzung
+- `besorge(bot, ding, gesamt, kontext)` in `src/besorgen.ts`: ein eigenständiger, wiederverwendbarer Baustein. Danach hat Bernard mindestens `gesamt` Stück. Sammelbares sammelt er (eine fehlende Spitzhacke besorgt er vorher), alles andere craftet er und besorgt die Zutaten rekursiv. Höchstens 6 Runden und 4 Ebenen, damit es keine Endlosschleifen gibt.
+- Der Craft-Befehl ruft nur noch `besorge` auf. Der Sammel-Befehl verhält sich wie bisher: Ohne Spitzhacke meldet er das, statt sie zu besorgen.
+- Nebenbei entstanden:
+  - Alles Abbauen und Platzieren läuft über `src/eingriffe.ts`, mit anhängbaren Regeln (Vorbereitung für 007).
+  - Die Wegfindung setzt keine Gerüstblöcke mehr.
+  - Abgebrochene Aufträge fassen die Wegfindung nicht mehr an (`src/auftrag.ts`, `halteAn`). Vorher stoppte ein abgebrochener Auftrag den Weg des neuen Befehls.
+- Szenario `besorgen`: Steinspitzhacke mit leerem Inventar, Ofen ohne Stein in der Nähe, Unterbrechen mitten im Besorgen. Die letzte Prüfung schlägt nachweislich fehl, wenn der Abbruch-Fehler wieder eingebaut wird.

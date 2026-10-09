@@ -3,12 +3,14 @@ import mineflayer, { type Bot } from 'mineflayer'
 import pathfinderPkg from 'mineflayer-pathfinder'
 import { GoalHinterher } from './ziele'
 import { anBernard, erkenneBefehl, istKumpel, type Material, type Nachricht } from './befehle'
-import { crafte } from './craften'
+import { halteAn, type Abbruch } from './auftrag'
+import { besorge } from './besorgen'
+import { bewegungen } from './eingriffe'
 import { DINGE, mitMenge } from './dinge'
 import { antwortZumGeben, beschreibeInventar, gib, type Geben } from './inventar'
-import { sammle, type Abbruch, type Sammelergebnis } from './sammeln'
+import { sammle, type Sammelergebnis } from './sammeln'
 
-const { pathfinder, Movements, goals } = pathfinderPkg
+const { pathfinder, goals } = pathfinderPkg
 
 export type BernardOptionen = {
   host: string
@@ -33,10 +35,7 @@ export function starteBernard(optionen: BernardOptionen): Bot {
   bot.loadPlugin(pathfinder)
 
   bot.once('spawn', () => {
-    const bewegungen = new Movements(bot)
-    bewegungen.canDig = false // Version 1: beim Laufen nichts abbauen
-    bewegungen.allow1by1towers = false
-    bot.pathfinder.setMovements(bewegungen)
+    bot.pathfinder.setMovements(bewegungen(bot)) // unterwegs nichts abbauen, nichts platzieren
   })
 
   const protokoll = optionen.protokoll
@@ -104,7 +103,7 @@ export function starteBernard(optionen: BernardOptionen): Bot {
         const aufgabe: Abbruch = { abgebrochen: false }
         laufendeAufgabe = aufgabe
         const sag = (ergebnis: Geben) => { if (!aufgabe.abgebrochen) antworte(bot, nachricht, antwortZumGeben(ergebnis, befehl.ding, befehl.menge)) }
-        void gib(bot, ziel, befehl.ding, befehl.menge, sag, optionen.protokoll)
+        void gib(bot, ziel, befehl.ding, befehl.menge, aufgabe, sag, optionen.protokoll)
           .then(ergebnis => { if (ergebnis.art !== 'gegeben') sag(ergebnis) })
           .catch(fehler => meldeFehler(bot, nachricht, aufgabe, 'Beim Geben', fehler, optionen.protokoll))
         return
@@ -112,11 +111,16 @@ export function starteBernard(optionen: BernardOptionen): Bot {
       case 'craften': {
         const aufgabe: Abbruch = { abgebrochen: false }
         laufendeAufgabe = aufgabe
-        void crafte(bot, befehl.ding, befehl.menge, aufgabe, text => antworte(bot, nachricht, text), optionen.protokoll)
-          .then(ergebnis => {
+        const vorher = bot.inventory.items().filter(i => DINGE[befehl.ding].passt(i.name)).reduce((s, i) => s + i.count, 0)
+        void besorge(bot, befehl.ding, vorher + befehl.menge,
+          { abbruch: aufgabe, melde: text => antworte(bot, nachricht, text), protokoll: optionen.protokoll })
+          .then(async ergebnis => {
             if (aufgabe.abgebrochen) return
-            if (ergebnis.art === 'fertig') antworte(bot, nachricht, `Fertig: ${mitMenge(befehl.ding, ergebnis.anzahl)}!`)
-            else if (ergebnis.art === 'fehlt') antworte(bot, nachricht, `Dafür fehlen mir ${ergebnis.text}.`)
+            if (ergebnis.art === 'fertig') {
+              if (ergebnis.unterwegs) await zurueckZu(bot, nachricht.absender, aufgabe)
+              if (!aufgabe.abgebrochen) antworte(bot, nachricht, `Fertig: ${mitMenge(befehl.ding, ergebnis.anzahl)}!`)
+            } else if (ergebnis.art === 'fehlt') antworte(bot, nachricht, `Dafür fehlen mir ${ergebnis.text}.`)
+            else if (ergebnis.art === 'nichtGefunden') antworte(bot, nachricht, ergebnis.text)
             else if (ergebnis.art === 'keinPlatz') antworte(bot, nachricht, 'Ich finde keinen Platz für die Werkbank.')
           })
           .catch(fehler => meldeFehler(bot, nachricht, aufgabe, 'Beim Craften', fehler, optionen.protokoll))
@@ -156,6 +160,13 @@ async function sammleUndMelde(bot: Bot, material: Material, menge: number, aufga
   if (aufgabe.abgebrochen) return
   if (ergebnis.art === 'fertig') antworte(bot, nachricht, `Fertig, ich habe ${mitMenge(material, ergebnis.anzahl)}!`)
   else antworte(bot, nachricht, `Ich finde hier ${ding.kein} mehr. Ich habe ${mitMenge(material, ergebnis.anzahl)}.`)
+}
+
+/** Zurück zum Kumpel, z. B. bevor Bernard meldet, dass er fertig ist. */
+async function zurueckZu(bot: Bot, kumpel: string, aufgabe: Abbruch) {
+  const ziel = bot.players[kumpel]?.entity
+  if (!ziel) return
+  await bot.pathfinder.goto(new goals.GoalNear(ziel.position.x, ziel.position.y, ziel.position.z, 2)).catch(() => halteAn(bot, aufgabe))
 }
 
 function meldeFehler(bot: Bot, nachricht: Nachricht, aufgabe: Abbruch, wobei: string, fehler: unknown,
