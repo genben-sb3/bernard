@@ -57,7 +57,7 @@ const DE = {
   // Craften und Besorgen
   fertigGecraftet: (was: string) => `Fertig: ${was}!`,
   fehlenMir: (was: string) => `Dafür fehlen mir ${was}.`,
-  keinPlatzWerkbank: 'Ich finde keinen Platz für die Werkbank.',
+  keinPlatzAufstellen: 'Ich finde keinen Platz zum Aufstellen.',
   werkbankAufstellen: 'Moment, ich stelle kurz eine Werkbank auf.',
   holeErst: (was: string) => `Dafür hole ich erst ${was}.`,
   erstHolzspitzhacke: (fuer: string) => `Für ${fuer} brauche ich erst eine Holzspitzhacke.`,
@@ -95,7 +95,7 @@ const EN: Texte = {
   brauchtWerkzeug: (fuer, werkzeug) => `I need ${{ spitzhacke: 'a pickaxe' }[werkzeug]} for ${fuer}.`,
   fertigGecraftet: was => `Done: ${was}!`,
   fehlenMir: was => `I'm missing ${was} for that.`,
-  keinPlatzWerkbank: "I can't find a spot for the crafting table.",
+  keinPlatzAufstellen: "I can't find a spot to set it up.",
   werkbankAufstellen: 'One moment, setting up a crafting table.',
   holeErst: was => `First I'll get ${was}.`,
   erstHolzspitzhacke: fuer => `I need a wooden pickaxe for ${fuer} first.`,

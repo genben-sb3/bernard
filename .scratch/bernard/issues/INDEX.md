@@ -7,14 +7,16 @@ Eine Datei pro Ticket. Abarbeiten, sobald die Blocker erledigt sind. Begriffe st
 | ~~001~~ | [Fehlendes Material fürs Craften selbst besorgen](001-fehlendes-material-selbst-besorgen.md) ✅ | 1 | – |
 | ~~002~~ | [KI-Anbindung für freie Sätze und unbekannte Gegenstände](002-ki-anbindung-freie-saetze.md) ✅ | 1 | – |
 | ~~003~~ | [Antwort in der Sprache des Befehls](003-antwortsprache-wie-befehl.md) ✅ | 1 | – |
-| 004 | [Schmelzen im Ofen](004-schmelzen-im-ofen.md) | 2 | 001 (sinnvoll) |
+| ~~004~~ | [Schmelzen im Ofen](004-schmelzen-im-ofen.md) ✅ | 2 | 001 (sinnvoll) |
 | ~~005~~ | [„bau“ fürs Bauen freihalten](005-bau-fuer-bauen-freihalten.md) ✅ | 1 | – |
 | 006 | [Kämpfen und Beschützen](006-kaempfen-und-beschuetzen.md) | 1 | – |
 | 007 | [Geschützte Bereiche](007-geschuetzte-bereiche.md) | 1 | – (zurückgestellt) |
 | 008 | [Beitreten, wenn ein Kumpel online kommt](008-beitreten-wenn-kumpel-online.md) | 1 | – |
 | 009 | [Ungetestetes prüfen (Erde, Sand, Axt, Tod)](009-ungetestetes-pruefen.md) | 1 | – |
 | 010 | [Folgen glätten](010-folgen-glaetten.md) | 1 | – |
-| 011 | [Vorhaben-Gerüst und Stufe 1 (Steinzeit)](011-vorhaben-geruest-und-stufe-1.md) | 1 | 001 · **Priorität** |
+| ~~011~~ | [Vorhaben-Gerüst und Stufe 1 (Steinzeit)](011-vorhaben-geruest-und-stufe-1.md) ✅ | 1 | 001 · **Priorität** |
+| ~~012~~ | [Werkbank und Ofen auch in engen Stellen aufstellen](012-aufstellen-in-engen-stellen.md) ✅ | 1 | – · **Priorität** (vor 013) |
+| 013 | [Stufe 2 (Eisenzeit): Vorrat, Lager und Mine](013-stufe-2-eisenzeit.md) | 1 | 004, 012, 011 · **Priorität** |
 
 ## Später (Version 2+, noch ohne Ticket)
 - Sachen nach dem Tod zurückholen (Q24)

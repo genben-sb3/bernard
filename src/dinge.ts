@@ -13,6 +13,8 @@ export type Ding = {
   passt: (gegenstand: string) => boolean
   /** Was Bernard herstellt, wenn er es craften soll (bei Brettern: passend zum vorhandenen Holz). */
   herstellen?: string[]
+  /** Was im Ofen entsteht, wenn Bernard es herstellen soll (Gegenstandsname). */
+  schmelzen?: string
 }
 
 const genau = (...namen: string[]) => (n: string) => namen.includes(n)
@@ -34,6 +36,12 @@ export const DINGE = {
   ofen: { einzahl: 'Ofen', mehrzahl: 'Öfen', kein: 'keinen Ofen', en: ['Furnace', 'Furnaces', 'no furnace'], passt: genau('furnace'), herstellen: ['furnace'] },
   fackeln: { einzahl: 'Fackel', mehrzahl: 'Fackeln', kein: 'keine Fackeln', en: ['Torch', 'Torches', 'no torches'], passt: genau('torch'), herstellen: ['torch'] },
   kohle: { einzahl: 'Kohle', mehrzahl: 'Kohle', kein: 'keine Kohle', en: ['Coal', 'Coal', 'no coal'], passt: genau('coal', 'charcoal') },
+  holzkohle: { einzahl: 'Holzkohle', mehrzahl: 'Holzkohle', kein: 'keine Holzkohle', en: ['Charcoal', 'Charcoal', 'no charcoal'], passt: genau('charcoal'), schmelzen: 'charcoal' },
+  eisenbarren: { einzahl: 'Eisenbarren', mehrzahl: 'Eisenbarren', kein: 'keine Eisenbarren', en: ['Iron Ingot', 'Iron Ingots', 'no iron ingots'], passt: genau('iron_ingot'), schmelzen: 'iron_ingot' },
+  goldbarren: { einzahl: 'Goldbarren', mehrzahl: 'Goldbarren', kein: 'keine Goldbarren', en: ['Gold Ingot', 'Gold Ingots', 'no gold ingots'], passt: genau('gold_ingot'), schmelzen: 'gold_ingot' },
+  kupferbarren: { einzahl: 'Kupferbarren', mehrzahl: 'Kupferbarren', kein: 'keine Kupferbarren', en: ['Copper Ingot', 'Copper Ingots', 'no copper ingots'], passt: genau('copper_ingot'), schmelzen: 'copper_ingot' },
+  glas: { einzahl: 'Glas', mehrzahl: 'Glas', kein: 'kein Glas', en: ['Glass', 'Glass', 'no glass'], passt: genau('glass'), schmelzen: 'glass' },
+  roheisen: { einzahl: 'Roheisen', mehrzahl: 'Roheisen', kein: 'kein Roheisen', en: ['Raw Iron', 'Raw Iron', 'no raw iron'], passt: genau('raw_iron') },
   setzlinge: { einzahl: 'Setzling', mehrzahl: 'Setzlinge', kein: 'keine Setzlinge', en: ['Sapling', 'Saplings', 'no saplings'], passt: n => n.endsWith('_sapling') },
   holzspitzhacke: { einzahl: 'Holzspitzhacke', mehrzahl: 'Holzspitzhacken', kein: 'keine Holzspitzhacke', en: ['Wooden Pickaxe', 'Wooden Pickaxes', 'no wooden pickaxe'], passt: genau('wooden_pickaxe'), herstellen: ['wooden_pickaxe'] },
   holzaxt: { einzahl: 'Holzaxt', mehrzahl: 'Holzäxte', kein: 'keine Holzaxt', en: ['Wooden Axe', 'Wooden Axes', 'no wooden axe'], passt: genau('wooden_axe'), herstellen: ['wooden_axe'] },
@@ -87,6 +95,12 @@ const WOERTER: Record<string, DingName> = {
   ofen: 'ofen', 'öfen': 'ofen', furnace: 'ofen',
   fackel: 'fackeln', fackeln: 'fackeln', torch: 'fackeln', torches: 'fackeln',
   kohle: 'kohle', coal: 'kohle',
+  holzkohle: 'holzkohle', charcoal: 'holzkohle',
+  eisen: 'eisenbarren', eisenbarren: 'eisenbarren', iron: 'eisenbarren', 'iron ingot': 'eisenbarren', 'iron ingots': 'eisenbarren',
+  gold: 'goldbarren', goldbarren: 'goldbarren', 'gold ingot': 'goldbarren', 'gold ingots': 'goldbarren',
+  kupfer: 'kupferbarren', kupferbarren: 'kupferbarren', copper: 'kupferbarren', 'copper ingot': 'kupferbarren', 'copper ingots': 'kupferbarren',
+  glas: 'glas', glass: 'glas',
+  roheisen: 'roheisen', 'raw iron': 'roheisen',
   setzling: 'setzlinge', setzlinge: 'setzlinge', sapling: 'setzlinge', saplings: 'setzlinge',
   holzspitzhacke: 'holzspitzhacke', 'wooden pickaxe': 'holzspitzhacke',
   holzaxt: 'holzaxt', 'wooden axe': 'holzaxt',

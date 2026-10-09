@@ -59,7 +59,7 @@ function mengeUndDing(rest: string): { menge: number | null; ding: DingName } | 
 /** „4 bretter“ → Craften, wenn es ein Gegenstand ist, den man herstellen kann; sonst null. */
 function gegenstandZumCraften(rest: string): Befehl | null {
   const was = mengeUndDing(rest)
-  if (!was || !('herstellen' in DINGE[was.ding])) return null
+  if (!was || !('herstellen' in DINGE[was.ding] || 'schmelzen' in DINGE[was.ding])) return null
   return { art: 'craften', ding: was.ding, menge: was.menge ?? 1 }
 }
 
@@ -69,6 +69,7 @@ const ALLES = /^(alles|everything|all deine sachen|all your stuff|all your items
 const CRAFTEN = /^(mach|mache|crafte|craft|make|stell)( mir| me)? (.+?)( her)?$/
 /** „bau“ craftet nur Gegenstände; alles andere ist Bauen. */
 const BAUEN = /^(bau|baue|build)( mir| me)? (.+)$/
+const SCHMELZEN = /^(schmelz|schmilz|schmelze|smelt|brenn|brenne)( mir| me)? (.+)$/
 
 /** Wörter für Stufen → Nummer. */
 const STUFEN_WOERTER: Record<string, number> = {
@@ -137,7 +138,7 @@ export function erkenneBefehl(text: string): Befehl | null {
   }
   const bauen = normal.match(BAUEN)
   if (bauen) return gegenstandZumCraften(bauen[3]) ?? { art: 'bauen' }
-  const craften = normal.match(CRAFTEN)
+  const craften = normal.match(CRAFTEN) ?? normal.match(SCHMELZEN)
   if (craften) return gegenstandZumCraften(craften[3])
   const sammeln = normal.match(SAMMELN)
   if (sammeln) {

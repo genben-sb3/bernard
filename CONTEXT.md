@@ -41,12 +41,28 @@ Ein langfristiges Ziel, das ein Kumpel Bernard gibt, z. B. „spiel bis zur Stei
 _Avoid_: Mission, Quest, Auftrag, Ziel (als Begriff)
 
 **Stufe**:
-Ein Abschnitt auf dem Weg zum Spielende: 1 Steinzeit, 2 Eisenzeit, 3 Diamantzeit, 4 Nether, 5 End. Welche Stufe Bernard erreicht hat, ergibt sich allein daraus, was er gerade besitzt.
+Ein Abschnitt auf dem Weg zum Spielende: 1 Steinzeit, 2 Eisenzeit, 3 Diamantzeit, 4 Nether, 5 End. Welche Stufe Bernard erreicht hat, ergibt sich allein aus seinem Besitz.
 _Avoid_: Level, Phase, Etappe
 
 **Soll-Inventar**:
-Was Bernard besitzen muss, damit eine Stufe als erreicht gilt. Ein besseres Werkzeug zählt für ein schlechteres derselben Art.
+Die dauerhaften Dinge, die Bernard besitzen muss, damit eine Stufe als erreicht gilt. Ein besseres Werkzeug zählt für ein schlechteres derselben Art. Verbrauchsgüter gehören nicht hinein, sondern in den Vorrat.
 _Avoid_: Checkliste, Anforderungen
+
+**Vorrat**:
+Verbrauchsgüter (z. B. Fackeln, Bruchstein, Holz), die Bernard für eine Stufe bereithält. Er füllt ihn auf, aber der Vorrat zählt nicht zur Stufe: Was er davon verbraucht, ist nie ein Rückfall.
+_Avoid_: Reserve, Soll (für Verbrauchsgüter)
+
+**Lager**:
+Bernards fester Ort in der Welt: Kiste(n), aufgestellter Ofen und Werkbank. Was dort liegt oder steht, gehört zu seinem Besitz. Er legt es selbst an und sagt die Koordinaten im Chat an.
+_Avoid_: Basis, Truhe, Depot
+
+**Mine**:
+Bernards gegrabener Weg zum Erz, vom Lager aus: eine Treppe nach unten und Stollen auf Erzhöhe. Er merkt sie sich und gräbt dort beim nächsten Mal weiter.
+_Avoid_: Schacht, Tunnel, Höhle (Höhlen sind natürlich)
+
+**Besitz**:
+Alles, was Bernard hat: sein Inventar plus sein Lager. Daraus ergibt sich seine Stufe.
+_Avoid_: Inventar (wenn das Lager mitgemeint ist)
 
 **Rückfall**:
 Bernard verliert Sachen (z. B. durch einen Tod) und steht danach auf einer niedrigeren Stufe.

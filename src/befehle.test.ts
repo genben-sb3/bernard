@@ -135,6 +135,23 @@ describe('erkenneBefehl – bauen', () => {
   })
 })
 
+describe('erkenneBefehl – schmelzen', () => {
+  it.each([
+    ['schmelz 5 eisen', 'eisenbarren', 5],
+    ['mach 4 holzkohle', 'holzkohle', 4],
+    ['schmilz mir 3 glas', 'glas', 3],
+    ['smelt 2 iron ingots', 'eisenbarren', 2],
+    ['brenn 8 holzkohle', 'holzkohle', 8],
+    ['schmelz gold', 'goldbarren', 1],
+  ])('%s → %s × %i', (text, ding, menge) => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'craften', ding, menge })
+  })
+
+  it('schmilzt nur, was im Ofen entsteht', () => {
+    expect(erkenneBefehl('schmelz 3 sand')).toBeNull()
+  })
+})
+
 describe('erkenneBefehl – Füllwörter', () => {
   it.each([
     ['bleib mal da stehen', 'stopp'],

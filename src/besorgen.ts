@@ -1,11 +1,12 @@
-// Besorgt fehlendes Grundmaterial fürs Craften selbst: sammeln, nötige Werkzeuge craften, dann craften.
+// Besorgt fehlendes Grundmaterial fürs Craften selbst: sammeln, nötige Werkzeuge craften, dann craften oder schmelzen.
 import type { Bot } from 'mineflayer'
 import type { Material } from './befehle'
 import { crafte } from './craften'
-import { DINGE, dingFuer, kein, mehrzahl, mitMenge, type DingSchluessel } from './dinge'
+import { DINGE, dingFuer, kein, mehrzahl, mitMenge, type DingName, type DingSchluessel } from './dinge'
 import { aufzaehlung, texte, type Sprache } from './texte'
 import type { Abbruch } from './auftrag'
 import { MATERIALIEN, sammle } from './sammeln'
+import { schmelze } from './schmelzen'
 
 export type Sammelauftrag = { material: Material; menge: number }
 
@@ -71,9 +72,77 @@ export async function besorge(bot: Bot, ding: DingSchluessel, gesamt: number, k:
   const start = zaehle()
   if (start >= gesamt) return { art: 'fertig', anzahl: 0, unterwegs: false }
   if (tiefe > MAX_TIEFE) return { art: 'fehlt', text: mitMenge(ding, gesamt - start, k.sprache) }
-  return istSammelbar(ding)
-    ? sammleMitWerkzeug(bot, ding, gesamt - start, k, tiefe)
+  if (istSammelbar(ding)) return sammleMitWerkzeug(bot, ding, gesamt - start, k, tiefe)
+  const ergebnis = dingFuer(ding).schmelzen
+  return ergebnis
+    ? schmelzeMitZutaten(bot, ergebnis, gesamt, k, tiefe, zaehle, start)
     : crafteMitZutaten(bot, ding, gesamt, k, tiefe, zaehle, start)
+}
+
+/** Was Bernard für ein Ofenergebnis selbst sammeln kann (Erze kann er noch nicht abbauen). */
+const OFEN_ZUTAT: Record<string, Material> = { glass: 'sand', stone: 'stein', charcoal: 'holz' }
+/** Wie Bernard eine fehlende Zutat nennt, die er nicht selbst sammeln kann. */
+const OFEN_ZUTAT_NAME: Record<string, Record<Sprache, [string, string]>> = {
+  iron_ingot: { de: ['Roheisen', 'Roheisen'], en: ['Raw Iron', 'Raw Iron'] },
+  gold_ingot: { de: ['Rohgold', 'Rohgold'], en: ['Raw Gold', 'Raw Gold'] },
+  copper_ingot: { de: ['Rohkupfer', 'Rohkupfer'], en: ['Raw Copper', 'Raw Copper'] },
+  smooth_stone: { de: ['Stein', 'Steine'], en: ['Stone', 'Stone'] },
+}
+/** Schmelzvorgänge pro Stamm als Brennstoff */
+const STAMM_BRENNT = 1.5
+
+/** Welches Ding im Ofen entsteht und einen fehlenden Gegenstand liefert (Kohle ersetzt Holzkohle). */
+function schmelzDingFuer(gegenstand: string): DingName | null {
+  const name = gegenstand === 'coal' ? 'charcoal' : gegenstand
+  return (Object.keys(DINGE) as DingName[]).find(d => dingFuer(d).schmelzen === name) ?? null
+}
+
+async function schmelzeMitZutaten(bot: Bot, ergebnis: string, gesamt: number, k: Besorgkontext, tiefe: number,
+  zaehle: () => number, start: number): Promise<Besorgergebnis> {
+  let unterwegs = false
+  for (let runde = 0; runde < MAX_RUNDEN; runde++) {
+    if (k.abbruch.abgebrochen) return { art: 'abgebrochen' }
+    const versuch = await schmelze(bot, ergebnis, gesamt - zaehle(), k.abbruch, k.melde, k.protokoll)
+    if (versuch.art === 'fertig') return { art: 'fertig', anzahl: zaehle() - start, unterwegs }
+    if (versuch.art !== 'fehlt') return versuch
+    k.protokoll?.(`Besorgen: ${ergebnis}, Runde ${runde + 1}, fehlt ${versuch.eingabe} Zutaten, Brennstoff für ${versuch.brennstoff}${versuch.ofen ? ', ein Ofen' : ''}`)
+
+    const auftraege: Auftrag[] = []
+    let holz = Math.ceil(versuch.brennstoff / STAMM_BRENNT)
+    if (versuch.eingabe > 0) {
+      const zutat = OFEN_ZUTAT[ergebnis]
+      if (!zutat) {
+        const sprache = k.sprache ?? 'de'
+        const [eins, viele] = OFEN_ZUTAT_NAME[ergebnis]?.[sprache] ?? (sprache === 'en' ? ['ingredient', 'ingredients'] : ['Zutat', 'Zutaten'])
+        return { art: 'fehlt', text: `${versuch.eingabe} ${versuch.eingabe === 1 ? eins : viele}` }
+      }
+      if (zutat === 'holz') holz += versuch.eingabe
+      else auftraege.push({ ding: zutat, menge: versuch.eingabe })
+    }
+    if (holz > 0) auftraege.push({ ding: 'holz', menge: holz })
+    if (versuch.ofen) auftraege.push({ ding: 'ofen', menge: 1 })
+    const geholt = await holeAlles(bot, auftraege, k, tiefe)
+    if (geholt.art !== 'fertig') return geholt
+    unterwegs = unterwegs || geholt.unterwegs
+  }
+  k.protokoll?.(`Besorgen: ${ergebnis} nach ${MAX_RUNDEN} Runden aufgegeben`)
+  return { art: 'fehlt', text: mitMenge(schmelzDingFuer(ergebnis) ?? 'kohle', gesamt - zaehle(), k.sprache) }
+}
+
+type Auftrag = { ding: DingSchluessel; menge: number }
+
+/** Sagt an, was Bernard erst holt, und besorgt es nacheinander (`menge` zusätzlich zum Bestand). */
+async function holeAlles(bot: Bot, auftraege: Auftrag[], k: Besorgkontext, tiefe: number, fehltNoch?: string): Promise<Besorgergebnis> {
+  let unterwegs = false
+  k.melde(texte(k.sprache ?? 'de').holeErst(aufzaehlung(auftraege.map(a => mitMenge(a.ding, a.menge, k.sprache)), k.sprache ?? 'de')))
+  for (const auftrag of auftraege) {
+    const bestand = bot.inventory.items().filter(i => dingFuer(auftrag.ding).passt(i.name)).reduce((s, i) => s + i.count, 0)
+    const teil = await besorge(bot, auftrag.ding, bestand + auftrag.menge, k, tiefe + 1)
+    if (teil.art === 'nichtGefunden') return { ...teil, fehlt: teil.fehlt ?? fehltNoch }
+    if (teil.art !== 'fertig') return teil
+    unterwegs = unterwegs || teil.unterwegs
+  }
+  return { art: 'fertig', anzahl: 0, unterwegs }
 }
 
 async function sammleMitWerkzeug(bot: Bot, material: Material, menge: number, k: Besorgkontext, tiefe: number): Promise<Besorgergebnis> {
@@ -106,16 +175,16 @@ async function crafteMitZutaten(bot: Bot, ding: DingSchluessel, gesamt: number, 
     const fehlt = [...versuch.fehlt].map(([id, n]) => [bot.registry.items[id].name, n] as [string, number])
     const { auftraege, unsammelbar } = sammelauftraege(fehlt)
     k.protokoll?.(`Besorgen: ${ding}, Runde ${runde + 1}, fehlt ${fehlt.map(([n, a]) => `${a} ${n}`).join(', ')}`)
-    if (unsammelbar.length > 0) return { art: 'fehlt', text: versuch.text }
+    // Was im Ofen entsteht (Holzkohle für Fackeln), schmilzt Bernard selbst
+    const schmelzbar = unsammelbar.map(([name, menge]) => ({ ding: schmelzDingFuer(name), menge }))
+    if (schmelzbar.some(a => !a.ding)) return { art: 'fehlt', text: versuch.text }
 
-    k.melde(texte(k.sprache ?? 'de').holeErst(aufzaehlung(auftraege.map(a => mitMenge(a.material, a.menge, k.sprache)), k.sprache ?? 'de')))
-    for (const auftrag of auftraege) {
-      const bestand = bot.inventory.items().filter(i => DINGE[auftrag.material].passt(i.name)).reduce((s, i) => s + i.count, 0)
-      const teil = await besorge(bot, auftrag.material, bestand + auftrag.menge, k, tiefe + 1)
-      if (teil.art === 'nichtGefunden') return { ...teil, fehlt: teil.fehlt ?? versuch.text }
-      if (teil.art !== 'fertig') return teil
-      unterwegs = unterwegs || teil.unterwegs
-    }
+    const geholt = await holeAlles(bot, [
+      ...auftraege.map(a => ({ ding: a.material, menge: a.menge })),
+      ...schmelzbar.map(a => ({ ding: a.ding!, menge: a.menge })),
+    ], k, tiefe, versuch.text)
+    if (geholt.art !== 'fertig') return geholt
+    unterwegs = unterwegs || geholt.unterwegs
   }
   k.protokoll?.(`Besorgen: ${ding} nach ${MAX_RUNDEN} Runden aufgegeben`)
   return { art: 'fehlt', text: letzterText }

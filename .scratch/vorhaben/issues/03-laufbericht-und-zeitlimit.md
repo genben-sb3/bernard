@@ -12,7 +12,7 @@ Tod und Rückfall kommen in Ticket 06 dazu. Das Format muss sie aufnehmen könne
 
 **Blocked by:** 01 (Vorhaben starten und Stufe 1 erreichen)
 
-**Status:** ready-for-agent
+**Status:** erledigt (bis auf den letzten Punkt: im echten Spiel noch nicht ausprobiert)
 
 - [x] Unit-Tests: Aus einer Folge von Inventar-Zuständen entstehen die richtigen Einträge. Jedes Ding erscheint nur beim ersten Erhalt, jeder Stufenwechsel wird festgehalten, und das Ende hat einen Grund.
 - [x] Jeder Eintrag hat Spielzeit und Echtzeit

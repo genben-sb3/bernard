@@ -129,7 +129,7 @@ export function starteBernard(optionen: BernardOptionen): Bot {
               if (!aufgabe.abgebrochen) antworte(bot, nachricht, t.fertigGecraftet(mitMenge(befehl.ding, ergebnis.anzahl, sprache)))
             } else if (ergebnis.art === 'fehlt') antworte(bot, nachricht, t.fehlenMir(ergebnis.text))
             else if (ergebnis.art === 'nichtGefunden') antworte(bot, nachricht, nichtGefundenText(ergebnis, sprache))
-            else if (ergebnis.art === 'keinPlatz') antworte(bot, nachricht, t.keinPlatzWerkbank)
+            else if (ergebnis.art === 'keinPlatz') antworte(bot, nachricht, t.keinPlatzAufstellen)
           })
           .catch(fehler => meldeFehler(bot, nachricht, aufgabe, 'craften', t, fehler, optionen.protokoll))
       }

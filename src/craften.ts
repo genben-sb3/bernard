@@ -6,7 +6,7 @@ import { Vec3 } from 'vec3'
 import { halteAn, type Abbruch } from './auftrag'
 import type { Recipe } from 'prismarine-recipe'
 import { erstellePlanner, type Bestand } from './craftplan'
-import { baueAb, platziere, warumNichtPlatzieren } from './eingriffe'
+import { baueAb, platziere, warumNichtAbbauen, warumNichtPlatzieren } from './eingriffe'
 import { DINGE, dingAufloeser, dingFuer, mitMenge, type DingSchluessel } from './dinge'
 import { aufzaehlung, texte, type Sprache } from './texte'
 import { warteAufInventarRuhe } from './ruhe'
@@ -41,7 +41,7 @@ export async function crafte(bot: Bot, ding: DingSchluessel, menge: number, abbr
     for (const schritt of plan.schritte) {
       if (abbruch.abgebrochen) return { art: 'abgebrochen' }
       if (schritt.rezept.requiresTable && !werkbank) {
-        aufgestellt = await stelleWerkbankAuf(bot)
+        aufgestellt = await stelleAuf(bot, 'crafting_table', protokoll)
         if (!aufgestellt) return { art: 'keinPlatz' }
         werkbank = aufgestellt
         protokoll(`Craften: Werkbank aufgestellt bei ${werkbank.position}`)
@@ -57,7 +57,7 @@ export async function crafte(bot: Bot, ding: DingSchluessel, menge: number, abbr
       }
     }
   } finally {
-    if (aufgestellt) await nimmWerkbankMit(bot, aufgestellt, abbruch, protokoll)
+    if (aufgestellt) await nimmMit(bot, aufgestellt, abbruch, protokoll)
   }
   return { art: 'fertig', anzahl: zaehle() - vorher }
 }
@@ -110,46 +110,93 @@ function werkbankInDerNaehe(bot: Bot): Block | null {
   return bot.findBlock({ matching: bot.registry.blocksByName.crafting_table.id, maxDistance: WERKBANK_REICHWEITE })
 }
 
-/** Stellt die Werkbank aus dem Inventar auf einen freien Platz neben Bernard. */
-async function stelleWerkbankAuf(bot: Bot): Promise<Block | null> {
-  const item = bot.inventory.items().find(i => i.name === 'crafting_table')
+/** Abbauzeit, bis zu der Bernard sich einen Platz freigräbt (Erde, Stein, Tiefenschiefer, nicht Obsidian) */
+const FREIGRABEN_MAX_MS = 5000
+const FLUESSIG = new Set(['water', 'lava'])
+
+/**
+ * Stellt einen Block aus dem Inventar (Werkbank, Ofen) auf einen Platz neben Bernard: zuerst auf Fußhöhe,
+ * sonst eine Ebene höher (Stufe am Rand eines Lochs), sonst gräbt er sich einen Platz auf Fußhöhe frei.
+ */
+export async function stelleAuf(bot: Bot, name: string, protokoll: (text: string) => void = () => {}): Promise<Block | null> {
+  const item = bot.inventory.items().find(i => i.name === name)
   if (!item) return null
   const fuesse = bot.entity.position.floored()
   // Auf die Seite weg von anderen Spielern: wer neben der Werkbank steht, schnappt sich sonst beim
   // Abbauen den Drop
   const andere = Object.values(bot.players).filter(p => p.entity && p.username !== bot.username).map(p => p.entity.position)
   const abstandZuAnderen = (p: Vec3) => Math.min(Infinity, ...andere.map(a => a.distanceTo(p)))
-  const plaetze = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]
-    .map(([dx, dz]) => fuesse.offset(dx, 0, dz))
+  const nachbarn = (dy: number, nurGerade = false) => [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]
+    .slice(0, nurGerade ? 4 : 8)
+    .map(([dx, dz]) => fuesse.offset(dx, dy, dz))
     .sort((a, b) => abstandZuAnderen(b) - abstandZuAnderen(a))
-  for (const platz of plaetze) {
+  const frei = (platz: Vec3) => {
     const unten = bot.blockAt(platz.offset(0, -1, 0))
-    if (bot.blockAt(platz)?.name !== 'air' || !unten || unten.boundingBox !== 'block') continue
-    if (warumNichtPlatzieren(bot, platz)) continue
+    return bot.blockAt(platz)?.name === 'air' && unten?.boundingBox === 'block' && !warumNichtPlatzieren(bot, platz)
+  }
+  const setze = async (platz: Vec3) => {
     await bot.equip(item, 'hand')
-    await platziere(bot, unten, new Vec3(0, 1, 0))
+    await platziere(bot, bot.blockAt(platz.offset(0, -1, 0))!, new Vec3(0, 1, 0))
     const gesetzt = bot.blockAt(platz)
-    if (gesetzt?.name === 'crafting_table') return gesetzt
+    return gesetzt?.name === name ? gesetzt : null
+  }
+
+  for (const platz of [...nachbarn(0), ...nachbarn(1)]) {
+    if (!frei(platz)) continue
+    const gesetzt = await setze(platz)
+    if (gesetzt) return gesetzt
+  }
+
+  // Kein Platz (z. B. in einem selbst gegrabenen Loch): eine Nische auf Fußhöhe freigraben, zwei Blöcke hoch,
+  // damit Bernard den Block danach wieder erreicht und aufheben kann
+  const grabbar = (platz: Vec3) => {
+    const block = bot.blockAt(platz)
+    if (!block || block.name === 'air') return 'frei'
+    if (block.boundingBox !== 'block' || !bot.canDigBlock(block) || bot.digTime(block) > FREIGRABEN_MAX_MS) return null
+    if (warumNichtAbbauen(bot, platz, block)) return null
+    const umgebung = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0]].map(([dx, dy, dz]) => bot.blockAt(platz.offset(dx, dy, dz))?.name ?? '')
+    return umgebung.some(n => FLUESSIG.has(n)) ? null : block
+  }
+  for (const platz of nachbarn(0, true)) {
+    if (bot.blockAt(platz.offset(0, -1, 0))?.boundingBox !== 'block') continue
+    const fuss = grabbar(platz)
+    const kopf = grabbar(platz.offset(0, 1, 0))
+    if (!fuss || !kopf) continue
+    protokoll(`Aufstellen: kein Platz für ${name}, grabe eine Nische bei ${platz}`)
+    for (const block of [kopf, fuss]) if (typeof block !== 'string') await baueAb(bot, block)
+    if (!frei(platz)) continue
+    const gesetzt = await setze(platz)
+    if (gesetzt) return gesetzt
   }
   return null
 }
 
-/** Baut die selbst aufgestellte Werkbank wieder ab und hebt sie auf. */
-async function nimmWerkbankMit(bot: Bot, werkbank: Block, abbruch: Abbruch, protokoll: (text: string) => void) {
+/** Baut einen selbst aufgestellten Block (Werkbank, Ofen) wieder ab und hebt ihn auf. */
+export async function nimmMit(bot: Bot, werkbank: Block, abbruch: Abbruch, protokoll: (text: string) => void) {
+  const name = werkbank.name
+  const id = bot.registry.itemsByName[name].id
   try {
     const aktuell = bot.blockAt(werkbank.position)
-    if (aktuell?.name !== 'crafting_table') return
-    const vorher = anzahlVon(bot, bot.registry.itemsByName.crafting_table.id)
+    if (aktuell?.name !== name) return
+    // Ohne passendes Werkzeug fiele ein Ofen nicht als Gegenstand heraus
+    const werkzeuge = aktuell.harvestTools
+    const werkzeug = werkzeuge ? bot.inventory.items().find(i => werkzeuge[i.type]) : null
+    if (werkzeuge && !werkzeug) {
+      protokoll(`Craften: ${name} bleibt stehen, mir fehlt das Werkzeug zum Abbauen`)
+      return
+    }
+    if (werkzeug) await bot.equip(werkzeug, 'hand')
+    const vorher = anzahlVon(bot, id)
     await baueAb(bot, aktuell)
-    for (let versuch = 0; versuch < 4 && anzahlVon(bot, bot.registry.itemsByName.crafting_table.id) <= vorher; versuch++) {
+    for (let versuch = 0; versuch < 4 && anzahlVon(bot, id) <= vorher; versuch++) {
       await new Promise(r => setTimeout(r, 700)) // fallen und liegen lassen
       const drop = bot.nearestEntity(e => e.name === 'item' && e.position.distanceTo(werkbank.position) < 5)
       if (!drop) continue
       await bot.pathfinder.goto(new goals.GoalXZ(Math.floor(drop.position.x), Math.floor(drop.position.z))).catch(() => halteAn(bot, abbruch))
     }
-    if (anzahlVon(bot, bot.registry.itemsByName.crafting_table.id) <= vorher) protokoll('Craften: Werkbank liegt noch herum')
+    if (anzahlVon(bot, id) <= vorher) protokoll(`Craften: ${name} liegt noch herum`)
   } catch (fehler) {
-    protokoll(`Craften: Werkbank mitnehmen klappt nicht (${fehler instanceof Error ? fehler.message : fehler})`)
+    protokoll(`Craften: ${name} mitnehmen klappt nicht (${fehler instanceof Error ? fehler.message : fehler})`)
   }
 }
 
