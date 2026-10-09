@@ -3,7 +3,7 @@ import { createCanvas } from 'canvas'
 import { writeFileSync } from 'node:fs'
 import type { Bot } from 'mineflayer'
 import { Vec3 } from 'vec3'
-import type { Probe } from './protokoll'
+import type { Abbau, Probe } from './protokoll'
 
 const FARBEN: Record<string, string> = {
   grass_block: '#6a9f3e',
@@ -17,6 +17,11 @@ const FARBEN: Record<string, string> = {
   oak_log: '#6b5131',
   oak_leaves: '#3c7a2a',
   oak_planks: '#a88754',
+  birch_log: '#d8d3c4',
+  birch_leaves: '#6c9a3e',
+  spruce_log: '#4a3721',
+  spruce_leaves: '#3d5e3d',
+  short_grass: '#6a9f3e',
   bedrock: '#333333',
 }
 const UNBEKANNT = '#c76bc7'
@@ -37,6 +42,7 @@ export function zeichneKarte(optionen: {
   titel: string
   datei: string
   bereich?: Bereich
+  abgebaut?: Abbau[]
 }) {
   const bereich = optionen.bereich ?? bereichAus(optionen.proben)
   const breite = (bereich.maxX - bereich.minX + 1) * PIXEL_PRO_BLOCK
@@ -81,6 +87,18 @@ export function zeichneKarte(optionen: {
     (x - bereich.minX) * PIXEL_PRO_BLOCK,
     (z - bereich.minZ) * PIXEL_PRO_BLOCK + kopf,
   ] as const
+
+  // Abgebaute Blöcke als Kreuz
+  g.strokeStyle = '#111111'
+  g.lineWidth = 2
+  for (const a of optionen.abgebaut ?? []) {
+    const [px, pz] = zuPixel(a.position.x, a.position.z)
+    const r = PIXEL_PRO_BLOCK / 2 - 2
+    g.beginPath()
+    g.moveTo(px + 2, pz + 2); g.lineTo(px + 2 + 2 * r, pz + 2 + 2 * r)
+    g.moveTo(px + 2 + 2 * r, pz + 2); g.lineTo(px + 2, pz + 2 + 2 * r)
+    g.stroke()
+  }
 
   // Wege
   for (const [name, farbe] of Object.entries(SPIELERFARBEN)) {

@@ -7,9 +7,10 @@ import { starteBernard } from '../src/bernard'
 import { Beobachter } from './beobachter'
 import type { Szenario } from './szenario'
 import { folgen } from './szenarien/folgen'
+import { sammeln } from './szenarien/sammeln'
 import { Testspieler, warte } from './testspieler'
 
-const SZENARIEN: Record<string, Szenario> = { folgen }
+const SZENARIEN: Record<string, Szenario> = { folgen, sammeln }
 
 const VERBINDUNG = { host: 'localhost', port: 25565, version: '26.1' }
 const BODEN = -60
@@ -27,7 +28,7 @@ const ordner = join('sim', 'ergebnisse', `${zeitstempel}-${szenario.name}`)
 const rcon = await Rcon.connect({ host: 'localhost', port: 25575, password: rconPasswort() })
 const befehl = async (b: string) => {
   const antwort = await rcon.send(b)
-  if (/unknown|incorrect|error|expected/i.test(antwort)) throw new Error(`Server-Befehl „${b}“ fehlgeschlagen: ${antwort}`)
+  if (/unknown|incorrect|error|expected|too many|not loaded|no player|could not|failed|invalid/i.test(antwort)) throw new Error(`Server-Befehl „${b}“ fehlgeschlagen: ${antwort}`)
   return antwort
 }
 
@@ -40,6 +41,7 @@ try {
   await befehl('gamemode spectator Beobachter')
   await befehl('time set day')
   await befehl('weather clear')
+  await leereArena()
   for (const b of szenario.aufbau) await befehl(b)
 
   const bernard = starteBernard({ ...VERBINDUNG, name: 'Bernard', kumpel: szenario.kumpel,
@@ -58,7 +60,11 @@ try {
     const hoehe = wer === 'Beobachter' ? BODEN + 30 : BODEN
     await befehl(`tp ${wer} ${x + 0.5} ${hoehe} ${z + 0.5} 0 ${wer === 'Beobachter' ? 90 : 0}`)
   }
-  for (const n of ['Bernard', ...szenario.spieler]) await befehl(`gamemode survival ${n}`)
+  for (const n of ['Bernard', ...szenario.spieler]) {
+    await befehl(`gamemode survival ${n}`)
+    await rcon.send(`clear ${n}`) // Inventar vom letzten Lauf leeren (meldet Fehler, wenn schon leer)
+    await befehl(`effect clear ${n}`).catch(() => {})
+  }
   await warte(2000) // Positionen und Chunks ankommen lassen
   beobachter.starteAufzeichnung()
   await warte(500)
@@ -81,6 +87,16 @@ for (const p of bericht.pruefungen) console.log(`  ${p.bestanden ? '✓' : '✗'
 if (abbruch) console.log(`  Abbruch: ${abbruch}`)
 console.log(`Ergebnisse: ${ordner}`)
 setTimeout(() => process.exit(bericht.bestanden ? 0 : 1), 500)
+
+/** Räumt die Testfläche (-30..40 in x und z) bis 14 Blöcke über dem Boden leer. */
+async function leereArena() {
+  await befehl('forceload add -48 -48 63 63')
+  for (let y = BODEN; y < BODEN + 14; y += 6) {
+    await befehl(`fill -30 ${y} -30 40 ${y + 5} 40 air`)
+  }
+  await befehl('fill -30 -61 -30 40 -61 40 grass_block')
+  await rcon.send('kill @e[type=item]') // meldet einen Fehler, wenn nichts herumliegt
+}
 
 function rconPasswort() {
   const eigenschaften = readFileSync(join('server', 'server.properties'), 'utf8')

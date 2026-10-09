@@ -2,7 +2,8 @@
 import mineflayer, { type Bot } from 'mineflayer'
 import pathfinderPkg from 'mineflayer-pathfinder'
 import { GoalHinterher } from './ziele'
-import { anBernard, erkenneBefehl, istKumpel, type Befehl, type Nachricht } from './befehle'
+import { anBernard, erkenneBefehl, istKumpel, type Material, type Nachricht } from './befehle'
+import { MATERIALIEN, sammle, type Abbruch, type Sammelergebnis } from './sammeln'
 
 const { pathfinder, Movements, goals } = pathfinderPkg
 
@@ -18,11 +19,6 @@ export type BernardOptionen = {
 
 const TASTEN = ['forward', 'back', 'left', 'right', 'jump', 'sprint', 'sneak'] as const
 
-const ANTWORTEN: Record<Befehl['art'], string> = {
-  folgen: 'Bin dabei, ich folge dir!',
-  stopp: 'Okay, ich bleib hier.',
-  kommHer: 'Bin unterwegs!',
-}
 
 export function starteBernard(optionen: BernardOptionen): Bot {
   const bot = mineflayer.createBot({
@@ -58,6 +54,14 @@ export function starteBernard(optionen: BernardOptionen): Bot {
     }, 1000)
   }
 
+  let laufendeAufgabe: Abbruch | null = null
+  const brichAb = () => {
+    if (laufendeAufgabe) laufendeAufgabe.abgebrochen = true
+    laufendeAufgabe = null
+    bot.pathfinder.setGoal(null)
+    if (bot.targetDigBlock) bot.stopDigging()
+  }
+
   const verarbeite = (nachricht: Nachricht) => {
     if (nachricht.absender === bot.username) return
     const text = anBernard(nachricht, optionen.name)
@@ -68,37 +72,67 @@ export function starteBernard(optionen: BernardOptionen): Bot {
       antworte(bot, nachricht, 'Das verstehe ich noch nicht.')
       return
     }
-    if (fuehreAus(bot, befehl, nachricht.absender)) antworte(bot, nachricht, ANTWORTEN[befehl.art])
+    brichAb() // ein neuer Befehl ersetzt den laufenden
+    const kumpel = nachricht.absender
+    const ziel = bot.players[kumpel]?.entity
+    switch (befehl.art) {
+      case 'folgen':
+        if (!ziel) return keinSichtkontakt(bot, kumpel)
+        bot.pathfinder.setGoal(new GoalHinterher(ziel), true)
+        return antworte(bot, nachricht, 'Bin dabei, ich folge dir!')
+      case 'kommHer':
+        if (!ziel) return keinSichtkontakt(bot, kumpel)
+        bot.pathfinder.setGoal(new goals.GoalNear(ziel.position.x, ziel.position.y, ziel.position.z, 2))
+        return antworte(bot, nachricht, 'Bin unterwegs!')
+      case 'stopp':
+        bot.clearControlStates()
+        return antworte(bot, nachricht, 'Okay, ich bleib hier.')
+      case 'sammeln': {
+        const aufgabe: Abbruch = { abgebrochen: false }
+        laufendeAufgabe = aufgabe
+        const name = MATERIALIEN[befehl.material].name
+        antworte(bot, nachricht, `Okay, ich hole ${befehl.menge} ${name}.`)
+        void sammleUndMelde(bot, befehl.material, befehl.menge, aufgabe, nachricht, optionen.protokoll)
+        return
+      }
+    }
   }
 
   bot.on('chat', (absender, text) => verarbeite({ absender, text, privat: false }))
   bot.on('whisper', (absender, text) => verarbeite({ absender, text, privat: true }))
-  bot.on('death', () => bot.chat('Autsch, ich bin gestorben. Ich warte am Spawn auf neue Befehle.'))
+  bot.on('death', () => {
+    brichAb()
+    bot.chat('Autsch, ich bin gestorben. Ich warte am Spawn auf neue Befehle.')
+  })
   return bot
 }
 
-/** Führt einen Befehl aus. Ein neuer Befehl ersetzt den laufenden. Liefert false, wenn es nicht geht. */
-function fuehreAus(bot: Bot, befehl: Befehl, kumpel: string): boolean {
-  const ziel = bot.players[kumpel]?.entity
-  switch (befehl.art) {
-    case 'folgen':
-      if (!ziel) return keinSichtkontakt(bot, kumpel)
-      bot.pathfinder.setGoal(new GoalHinterher(ziel), true)
-      return true
-    case 'kommHer':
-      if (!ziel) return keinSichtkontakt(bot, kumpel)
-      bot.pathfinder.setGoal(new goals.GoalNear(ziel.position.x, ziel.position.y, ziel.position.z, 2))
-      return true
-    case 'stopp':
-      bot.pathfinder.setGoal(null)
-      bot.clearControlStates()
-      return true
+async function sammleUndMelde(bot: Bot, material: Material, menge: number, aufgabe: Abbruch,
+  nachricht: Nachricht, protokoll?: (text: string) => void) {
+  const name = MATERIALIEN[material].name
+  let ergebnis: Sammelergebnis
+  try {
+    ergebnis = await sammle(bot, material, menge, aufgabe, protokoll)
+  } catch (fehler) {
+    protokoll?.(`Sammeln fehlgeschlagen: ${fehler instanceof Error ? fehler.stack : fehler}`)
+    if (!aufgabe.abgebrochen) antworte(bot, nachricht, `Beim Sammeln ist etwas schiefgegangen.`)
+    return
   }
+  if (aufgabe.abgebrochen || ergebnis.art === 'abgebrochen') return
+  if (ergebnis.art === 'werkzeugFehlt') return antworte(bot, nachricht, `Für ${name} brauche ich ${ergebnis.werkzeug}.`)
+
+  // Zurück zum Kumpel, dann melden
+  const kumpel = bot.players[nachricht.absender]?.entity
+  if (kumpel) {
+    await bot.pathfinder.goto(new goals.GoalNear(kumpel.position.x, kumpel.position.y, kumpel.position.z, 2)).catch(() => {})
+  }
+  if (aufgabe.abgebrochen) return
+  if (ergebnis.art === 'fertig') antworte(bot, nachricht, `Fertig, ich habe ${ergebnis.anzahl} ${name}!`)
+  else antworte(bot, nachricht, `Ich finde hier kein ${name} mehr. Ich habe ${ergebnis.anzahl} Stück.`)
 }
 
-function keinSichtkontakt(bot: Bot, kumpel: string): false {
+function keinSichtkontakt(bot: Bot, kumpel: string) {
   bot.chat(`${kumpel}, ich kann dich nicht sehen. Wo bist du?`)
-  return false
 }
 
 function antworte(bot: Bot, nachricht: Nachricht, text: string) {

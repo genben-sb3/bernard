@@ -23,3 +23,7 @@ _Avoid_: Kommando, Prompt, Auftrag
 **Geschützter Bereich**:
 Ein von Kumpeln festgelegtes Gebiet der Welt, in dem Bernard keine Blöcke abbaut.
 _Avoid_: Zone, Claim, Sperrgebiet
+
+**Natürlicher Baum**:
+Ein Baum, der von selbst gewachsen ist (erkennbar an Blättern, die kein Spieler gesetzt hat). Nur von natürlichen Bäumen nimmt Bernard Holz; Gebautes aus Holz bleibt stehen.
+_Avoid_: echter Baum, wilder Baum

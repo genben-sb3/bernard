@@ -4,7 +4,7 @@ import mineflayer, { type Bot } from 'mineflayer'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { zeichneKarte } from './karte'
-import type { Bericht, Bild, ChatZeile, Ereignis, Position, Probe, Pruefung } from './protokoll'
+import type { Abbau, Bericht, Bild, ChatZeile, Ereignis, Position, Probe, Pruefung } from './protokoll'
 
 const PROBEN_ABSTAND_MS = 250
 
@@ -17,6 +17,7 @@ export class Beobachter {
   private readonly ereignisse: Ereignis[] = []
   private readonly pruefungen: Pruefung[] = []
   private readonly bilder: Bild[] = []
+  private readonly abgebaut: Abbau[] = []
   private takt?: NodeJS.Timeout
 
   constructor(
@@ -29,6 +30,12 @@ export class Beobachter {
     this.bot.on('chat', (von, text) => this.notiereChat({ von, text }))
     this.bot.on('entityDead', e => {
       if (e.type === 'player' && e.username) this.notiere(`${e.username} ist gestorben`)
+    })
+    this.bot.on('blockUpdate', (alt, neu) => {
+      if (!alt || !neu || this.takt === undefined) return
+      if (alt.name === 'air' || alt.name.endsWith('_leaves') || neu.name !== 'air') return
+      const p = alt.position
+      this.abgebaut.push({ t: this.jetzt, block: alt.name, position: { x: p.x, y: p.y, z: p.z } })
     })
     this.bot.on('entityHurt', e => {
       if (e.type === 'player' && e.username && this.beobachtete.includes(e.username)) {
@@ -82,11 +89,16 @@ export class Beobachter {
     return this.chat.filter(c => c.t >= t)
   }
 
+  abgebautSeit(t: number) {
+    return this.abgebaut.filter(a => a.t >= t)
+  }
+
   karte(titel: string, nurSeit?: number) {
     const datei = `${String(this.bilder.length + 1).padStart(2, '0')}-${dateiname(titel)}.png`
     const proben = nurSeit === undefined ? this.proben : this.probenSeit(nurSeit)
     if (proben.length === 0) return
-    zeichneKarte({ welt: this.bot, proben, titel, datei: join(this.ordner, datei) })
+    const abgebaut = nurSeit === undefined ? this.abgebaut : this.abgebautSeit(nurSeit)
+    zeichneKarte({ welt: this.bot, proben, titel, datei: join(this.ordner, datei), abgebaut })
     this.bilder.push({ datei, titel })
   }
 
@@ -100,6 +112,7 @@ export class Beobachter {
       pruefungen: this.pruefungen,
       chat: this.chat,
       ereignisse: this.ereignisse,
+      abgebaut: this.abgebaut,
       bilder: this.bilder,
       proben: this.proben.filter((_, i) => i % 4 === 0), // eine Probe pro Sekunde reicht im Bericht
     }

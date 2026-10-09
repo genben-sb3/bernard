@@ -12,7 +12,6 @@ export const folgen: Szenario = {
   spieler: ['Ben', 'Fremder'],
   kumpel: ['Ben'],
   aufbau: [
-    `fill -30 ${BODEN} -30 40 ${BODEN + 10} 40 air`,
     // Mauer quer zum Weg, 3 Blöcke hoch: Bernard muss außen herum
     `fill 8 ${BODEN} -6 8 ${BODEN + 2} 10 stone_bricks`,
   ],

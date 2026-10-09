@@ -26,7 +26,7 @@
     "rcon-client": "^4.2.5",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vec3": "^0.2.0",
+    "vec3": "^0.1.10",
     "vitest": "^5.0.3"
   },
   "devDependencies": {

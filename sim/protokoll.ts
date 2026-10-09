@@ -18,6 +18,9 @@ export type Pruefung = {
 
 export type Bild = { datei: string; titel: string }
 
+/** Ein Block, der verschwunden ist (abgebaut). Blätter, die von selbst zerfallen, zählen nicht. */
+export type Abbau = { t: number; block: string; position: Position }
+
 export type Bericht = {
   szenario: string
   beschreibung: string
@@ -27,6 +30,7 @@ export type Bericht = {
   pruefungen: Pruefung[]
   chat: ChatZeile[]
   ereignisse: Ereignis[]
+  abgebaut: Abbau[]
   bilder: Bild[]
   proben: Probe[]
   abbruch?: string

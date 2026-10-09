@@ -15,7 +15,7 @@ Testet Bernard auf einem lokalen Testserver, ohne dass ein Mensch mitspielen mus
 
 ```sh
 cd server && ../.tools/java/bin/java -Xmx2G -jar paper.jar --nogui   # Server starten
-npm run sim -- folgen                                                # Szenario laufen lassen
+npm run sim -- folgen                                                # Szenario laufen lassen (folgen, sammeln)
 npx tsx sim/diagnose-wand.ts                                          # Wand-Diagnose: überall 0 Server-Korrekturen erwartet
 ```
 
@@ -27,4 +27,7 @@ Eine Datei in `sim/szenarien/` anlegen, die ein `Szenario` exportiert (Aufbau pe
 
 - **prismarine-physics ist gepatcht** (`patches/`): Server ab 26.1 lehnen jede Bewegung ab, wenn ein Spieler exakt bündig an einer Wand anliegt. Ohne den Patch bleibt Bernard an Wänden dauerhaft hängen.
 - **GoalFollow aus mineflayer-pathfinder wird nicht verwendet**: Das Ziel misst gegen einen veralteten Punkt und hängt bis zu doppelt so weit zurück wie eingestellt. Bernard nutzt stattdessen `GoalHinterher` aus `src/ziele.ts`.
+- **Baumfällen**: Bei kleinen Eichen hängen die untersten Blätter auf Kopfhöhe neben dem Stamm. Bernard darf beim Fällen deshalb natürliche Blätter wegschlagen (nie gesetzte, `persistent=true`). Ohne das findet die Wegsuche keinen Platz am Stamm, und Drops bleiben in den zugewachsenen Ecken liegen.
+- **Fallende Drops**: Gegenstände aus der Höhe brauchen etwa eine Sekunde zum Landen. Wer sie früher ansteuert, läuft zu ihrer Position in der Luft.
+- Liegen nach einem Lauf Stämme herum, nennt die Prüfung ihre echte Position laut Server (RCON), nicht die, die Bernard glaubt.
 - 3D-Screenshots gibt es nicht: prismarine-viewer kann nur Versionen bis 1.21.4 darstellen.

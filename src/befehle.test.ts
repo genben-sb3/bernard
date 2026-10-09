@@ -42,3 +42,24 @@ describe('istKumpel', () => {
     expect(istKumpel('Fremder', ['Ben'])).toBe(false)
   })
 })
+
+describe('erkenneBefehl – sammeln', () => {
+  it.each([
+    ['hol 10 holz', 10, 'holz'],
+    ['hol mir 5 Stück Holz', 5, 'holz'],
+    ['sammle 20 Eichenholz', 20, 'eichenholz'],
+    ['bring mir 3 stein', 3, 'stein'],
+    ['get 8 wood', 8, 'holz'],
+    ['collect 12 logs', 12, 'holz'],
+  ])('%s → %i × %s', (text, menge, material) => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'sammeln', menge, material, mengeGeraten: false })
+  })
+
+  it('rät 16 Stück, wenn keine Menge genannt ist', () => {
+    expect(erkenneBefehl('hol holz')).toEqual({ art: 'sammeln', menge: 16, material: 'holz', mengeGeraten: true })
+  })
+
+  it('kennt unbekannte Materialien nicht', () => {
+    expect(erkenneBefehl('hol 5 diamanten')).toBeNull()
+  })
+})

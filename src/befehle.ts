@@ -4,6 +4,25 @@ export type Befehl =
   | { art: 'folgen' }
   | { art: 'stopp' }
   | { art: 'kommHer' }
+  | { art: 'sammeln'; menge: number; material: Material; mengeGeraten: boolean }
+
+export type Material = 'holz' | 'eichenholz' | 'birkenholz' | 'fichtenholz' | 'stein' | 'erde' | 'sand'
+
+/** Wörter im Chat → Material. */
+const MATERIAL_WOERTER: Record<string, Material> = {
+  holz: 'holz', wood: 'holz', log: 'holz', logs: 'holz', stamm: 'holz', 'stämme': 'holz',
+  eichenholz: 'eichenholz', eiche: 'eichenholz', oak: 'eichenholz',
+  birkenholz: 'birkenholz', birke: 'birkenholz', birch: 'birkenholz',
+  fichtenholz: 'fichtenholz', fichte: 'fichtenholz', spruce: 'fichtenholz',
+  stein: 'stein', steine: 'stein', bruchstein: 'stein', stone: 'stein', cobblestone: 'stein',
+  erde: 'erde', dirt: 'erde',
+  sand: 'sand',
+}
+
+/** Menge, wenn der Kumpel keine nennt (Bernard rät und sagt es an). */
+export const STANDARDMENGE = 16
+
+const SAMMELN = /^(hol|hole|sammle|sammel|bring|get|collect|gather)( mir| me)? (?:(\d+) )?(?:(?:stück|stueck|stk) )?(\S+)$/
 
 export type Nachricht = {
   absender: string
@@ -30,6 +49,13 @@ export function anBernard(nachricht: Nachricht, name = 'Bernard'): string | null
 /** Erkennt einen Befehl im Text (ohne Anrede). Liefert null, wenn der Schnellweg ihn nicht kennt. */
 export function erkenneBefehl(text: string): Befehl | null {
   const normal = text.toLowerCase().replace(/[.!?]+$/, '').replace(/\s+/g, ' ').trim()
+  const sammeln = normal.match(SAMMELN)
+  if (sammeln) {
+    const material = MATERIAL_WOERTER[sammeln[4]]
+    if (!material) return null
+    const menge = sammeln[3] ? Number(sammeln[3]) : STANDARDMENGE
+    return { art: 'sammeln', menge, material, mengeGeraten: !sammeln[3] }
+  }
   for (const [muster, befehl] of MUSTER) {
     if (muster.test(normal)) return befehl
   }
