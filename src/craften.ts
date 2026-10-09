@@ -40,7 +40,7 @@ export async function crafte(bot: Bot, ding: DingSchluessel, menge: number, abbr
     for (const schritt of plan.schritte) {
       if (abbruch.abgebrochen) return { art: 'abgebrochen' }
       if (schritt.rezept.requiresTable && !werkbank) {
-        aufgestellt = await stelleWerkbankAuf(bot)
+        aufgestellt = await stelleAuf(bot, 'crafting_table')
         if (!aufgestellt) return { art: 'keinPlatz' }
         werkbank = aufgestellt
         protokoll(`Craften: Werkbank aufgestellt bei ${werkbank.position}`)
@@ -56,7 +56,7 @@ export async function crafte(bot: Bot, ding: DingSchluessel, menge: number, abbr
       }
     }
   } finally {
-    if (aufgestellt) await nimmWerkbankMit(bot, aufgestellt, abbruch, protokoll)
+    if (aufgestellt) await nimmMit(bot, aufgestellt, abbruch, protokoll)
   }
   return { art: 'fertig', anzahl: zaehle() - vorher }
 }
@@ -109,9 +109,9 @@ function werkbankInDerNaehe(bot: Bot): Block | null {
   return bot.findBlock({ matching: bot.registry.blocksByName.crafting_table.id, maxDistance: WERKBANK_REICHWEITE })
 }
 
-/** Stellt die Werkbank aus dem Inventar auf einen freien Platz neben Bernard. */
-async function stelleWerkbankAuf(bot: Bot): Promise<Block | null> {
-  const item = bot.inventory.items().find(i => i.name === 'crafting_table')
+/** Stellt einen Block aus dem Inventar (Werkbank, Ofen) auf einen freien Platz neben Bernard. */
+export async function stelleAuf(bot: Bot, name: string): Promise<Block | null> {
+  const item = bot.inventory.items().find(i => i.name === name)
   if (!item) return null
   const fuesse = bot.entity.position.floored()
   // Auf die Seite weg von anderen Spielern: wer neben der Werkbank steht, schnappt sich sonst beim
@@ -128,27 +128,37 @@ async function stelleWerkbankAuf(bot: Bot): Promise<Block | null> {
     await bot.equip(item, 'hand')
     await platziere(bot, unten, new Vec3(0, 1, 0))
     const gesetzt = bot.blockAt(platz)
-    if (gesetzt?.name === 'crafting_table') return gesetzt
+    if (gesetzt?.name === name) return gesetzt
   }
   return null
 }
 
-/** Baut die selbst aufgestellte Werkbank wieder ab und hebt sie auf. */
-async function nimmWerkbankMit(bot: Bot, werkbank: Block, abbruch: Abbruch, protokoll: (text: string) => void) {
+/** Baut einen selbst aufgestellten Block (Werkbank, Ofen) wieder ab und hebt ihn auf. */
+export async function nimmMit(bot: Bot, werkbank: Block, abbruch: Abbruch, protokoll: (text: string) => void) {
+  const name = werkbank.name
+  const id = bot.registry.itemsByName[name].id
   try {
     const aktuell = bot.blockAt(werkbank.position)
-    if (aktuell?.name !== 'crafting_table') return
-    const vorher = anzahlVon(bot, bot.registry.itemsByName.crafting_table.id)
+    if (aktuell?.name !== name) return
+    // Ohne passendes Werkzeug fiele ein Ofen nicht als Gegenstand heraus
+    const werkzeuge = aktuell.harvestTools
+    const werkzeug = werkzeuge ? bot.inventory.items().find(i => werkzeuge[i.type]) : null
+    if (werkzeuge && !werkzeug) {
+      protokoll(`Craften: ${name} bleibt stehen, mir fehlt das Werkzeug zum Abbauen`)
+      return
+    }
+    if (werkzeug) await bot.equip(werkzeug, 'hand')
+    const vorher = anzahlVon(bot, id)
     await baueAb(bot, aktuell)
-    for (let versuch = 0; versuch < 4 && anzahlVon(bot, bot.registry.itemsByName.crafting_table.id) <= vorher; versuch++) {
+    for (let versuch = 0; versuch < 4 && anzahlVon(bot, id) <= vorher; versuch++) {
       await new Promise(r => setTimeout(r, 700)) // fallen und liegen lassen
       const drop = bot.nearestEntity(e => e.name === 'item' && e.position.distanceTo(werkbank.position) < 5)
       if (!drop) continue
       await bot.pathfinder.goto(new goals.GoalXZ(Math.floor(drop.position.x), Math.floor(drop.position.z))).catch(() => halteAn(bot, abbruch))
     }
-    if (anzahlVon(bot, bot.registry.itemsByName.crafting_table.id) <= vorher) protokoll('Craften: Werkbank liegt noch herum')
+    if (anzahlVon(bot, id) <= vorher) protokoll(`Craften: ${name} liegt noch herum`)
   } catch (fehler) {
-    protokoll(`Craften: Werkbank mitnehmen klappt nicht (${fehler instanceof Error ? fehler.message : fehler})`)
+    protokoll(`Craften: ${name} mitnehmen klappt nicht (${fehler instanceof Error ? fehler.message : fehler})`)
   }
 }
 

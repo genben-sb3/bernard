@@ -10,6 +10,8 @@ export type Ding = {
   passt: (gegenstand: string) => boolean
   /** Was Bernard herstellt, wenn er es craften soll (bei Brettern: passend zum vorhandenen Holz). */
   herstellen?: string[]
+  /** Was im Ofen entsteht, wenn Bernard es herstellen soll (Gegenstandsname). */
+  schmelzen?: string
 }
 
 const genau = (...namen: string[]) => (n: string) => namen.includes(n)
@@ -31,6 +33,12 @@ export const DINGE = {
   ofen: { einzahl: 'Ofen', mehrzahl: 'Öfen', kein: 'keinen Ofen', passt: genau('furnace'), herstellen: ['furnace'] },
   fackeln: { einzahl: 'Fackel', mehrzahl: 'Fackeln', kein: 'keine Fackeln', passt: genau('torch'), herstellen: ['torch'] },
   kohle: { einzahl: 'Kohle', mehrzahl: 'Kohle', kein: 'keine Kohle', passt: genau('coal', 'charcoal') },
+  holzkohle: { einzahl: 'Holzkohle', mehrzahl: 'Holzkohle', kein: 'keine Holzkohle', passt: genau('charcoal'), schmelzen: 'charcoal' },
+  eisenbarren: { einzahl: 'Eisenbarren', mehrzahl: 'Eisenbarren', kein: 'keine Eisenbarren', passt: genau('iron_ingot'), schmelzen: 'iron_ingot' },
+  goldbarren: { einzahl: 'Goldbarren', mehrzahl: 'Goldbarren', kein: 'keine Goldbarren', passt: genau('gold_ingot'), schmelzen: 'gold_ingot' },
+  kupferbarren: { einzahl: 'Kupferbarren', mehrzahl: 'Kupferbarren', kein: 'keine Kupferbarren', passt: genau('copper_ingot'), schmelzen: 'copper_ingot' },
+  glas: { einzahl: 'Glas', mehrzahl: 'Glas', kein: 'kein Glas', passt: genau('glass'), schmelzen: 'glass' },
+  roheisen: { einzahl: 'Roheisen', mehrzahl: 'Roheisen', kein: 'kein Roheisen', passt: genau('raw_iron') },
   setzlinge: { einzahl: 'Setzling', mehrzahl: 'Setzlinge', kein: 'keine Setzlinge', passt: n => n.endsWith('_sapling') },
   holzspitzhacke: { einzahl: 'Holzspitzhacke', mehrzahl: 'Holzspitzhacken', kein: 'keine Holzspitzhacke', passt: genau('wooden_pickaxe'), herstellen: ['wooden_pickaxe'] },
   holzaxt: { einzahl: 'Holzaxt', mehrzahl: 'Holzäxte', kein: 'keine Holzaxt', passt: genau('wooden_axe'), herstellen: ['wooden_axe'] },
@@ -83,6 +91,12 @@ const WOERTER: Record<string, DingName> = {
   ofen: 'ofen', 'öfen': 'ofen', furnace: 'ofen',
   fackel: 'fackeln', fackeln: 'fackeln', torch: 'fackeln', torches: 'fackeln',
   kohle: 'kohle', coal: 'kohle',
+  holzkohle: 'holzkohle', charcoal: 'holzkohle',
+  eisen: 'eisenbarren', eisenbarren: 'eisenbarren', iron: 'eisenbarren', 'iron ingot': 'eisenbarren', 'iron ingots': 'eisenbarren',
+  gold: 'goldbarren', goldbarren: 'goldbarren', 'gold ingot': 'goldbarren', 'gold ingots': 'goldbarren',
+  kupfer: 'kupferbarren', kupferbarren: 'kupferbarren', copper: 'kupferbarren', 'copper ingot': 'kupferbarren', 'copper ingots': 'kupferbarren',
+  glas: 'glas', glass: 'glas',
+  roheisen: 'roheisen', 'raw iron': 'roheisen',
   setzling: 'setzlinge', setzlinge: 'setzlinge', sapling: 'setzlinge', saplings: 'setzlinge',
   holzspitzhacke: 'holzspitzhacke', 'wooden pickaxe': 'holzspitzhacke',
   holzaxt: 'holzaxt', 'wooden axe': 'holzaxt',

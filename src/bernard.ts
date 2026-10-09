@@ -121,7 +121,7 @@ export function starteBernard(optionen: BernardOptionen): Bot {
               if (!aufgabe.abgebrochen) antworte(bot, nachricht, `Fertig: ${mitMenge(befehl.ding, ergebnis.anzahl)}!`)
             } else if (ergebnis.art === 'fehlt') antworte(bot, nachricht, `Dafür fehlen mir ${ergebnis.text}.`)
             else if (ergebnis.art === 'nichtGefunden') antworte(bot, nachricht, ergebnis.text)
-            else if (ergebnis.art === 'keinPlatz') antworte(bot, nachricht, 'Ich finde keinen Platz für die Werkbank.')
+            else if (ergebnis.art === 'keinPlatz') antworte(bot, nachricht, 'Ich finde keinen Platz zum Aufstellen.')
           })
           .catch(fehler => meldeFehler(bot, nachricht, aufgabe, 'Beim Craften', fehler, optionen.protokoll))
       }

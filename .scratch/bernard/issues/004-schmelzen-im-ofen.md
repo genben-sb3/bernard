@@ -1,6 +1,6 @@
 # 004: Schmelzen im Ofen (Eisen, Holzkohle, Glas)
 
-**Status:** offen · **Blockiert von:** 001 (sinnvoll, nicht zwingend) · **Version:** 2
+**Status:** erledigt (Branch `ticket-004-schmelzen`) · **Blockiert von:** 001 (sinnvoll, nicht zwingend) · **Version:** 2
 
 ## Problem
 Bernard kann keinen Ofen benutzen. Damit gibt es kein Eisen, keine Holzkohle (also keine Fackeln ohne Kohle) und kein Glas.

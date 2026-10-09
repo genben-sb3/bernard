@@ -15,11 +15,12 @@ import { werkzeug } from './szenarien/werkzeug'
 import { vorhaben } from './szenarien/vorhaben'
 import { zeitlimit } from './szenarien/zeitlimit'
 import { weiterziehen } from './szenarien/weiterziehen'
+import { schmelzen } from './szenarien/schmelzen'
 import { unterbrechen } from './szenarien/unterbrechen'
 import { normalwelt } from './szenarien/normalwelt'
 import { Testspieler, warte } from './testspieler'
 
-const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki, vorhaben, zeitlimit, unterbrechen, weiterziehen, normalwelt }
+const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki, vorhaben, zeitlimit, unterbrechen, weiterziehen, schmelzen, normalwelt }
 
 const BODEN = -60
 

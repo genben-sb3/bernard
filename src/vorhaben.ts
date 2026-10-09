@@ -236,7 +236,7 @@ export class Vorhaben {
       }
       if (ergebnis.art === 'fertig') this.fehlschlag = zaehleFehlschlag(this.fehlschlag, { art: 'erfolg' })
       const scheitern = ergebnis.art === 'fehlt' ? `Mir fehlen ${ergebnis.text}.`
-        : ergebnis.art === 'keinPlatz' ? 'Ich finde keinen Platz für die Werkbank.'
+        : ergebnis.art === 'keinPlatz' ? 'Ich finde keinen Platz zum Aufstellen.'
         : null
       if (scheitern) return { grund: 'gescheitert', text: `${scheitern} Ich höre mit dem Vorhaben auf.` }
 

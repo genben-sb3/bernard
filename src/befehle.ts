@@ -58,6 +58,7 @@ const INVENTAR = /^(was hast du( dabei| bei dir| im inventar)?|(zeig )?(dein |mi
 const GEBEN = /^(gib|give)( mir| me) (.+)$/
 const ALLES = /^(alles|everything|all deine sachen|all your stuff|all your items)$/
 const CRAFTEN = /^(mach|mache|crafte|craft|bau|baue|stell)( mir| me)? (.+?)( her)?$/
+const SCHMELZEN = /^(schmelz|schmilz|schmelze|smelt|brenn|brenne)( mir| me)? (.+)$/
 
 /** Wörter für Stufen → Nummer. */
 const STUFEN_WOERTER: Record<string, number> = {
@@ -124,10 +125,10 @@ export function erkenneBefehl(text: string): Befehl | null {
     const was = mengeUndDing(geben[3])
     return was ? { art: 'geben', ding: was.ding, menge: was.menge ?? 'alle' } : null
   }
-  const craften = normal.match(CRAFTEN)
+  const craften = normal.match(CRAFTEN) ?? normal.match(SCHMELZEN)
   if (craften) {
     const was = mengeUndDing(craften[3])
-    if (!was || !('herstellen' in DINGE[was.ding])) return null
+    if (!was || !('herstellen' in DINGE[was.ding] || 'schmelzen' in DINGE[was.ding])) return null
     return { art: 'craften', ding: was.ding, menge: was.menge ?? 1 }
   }
   const sammeln = normal.match(SAMMELN)
