@@ -29,7 +29,7 @@ export const vorhaben: Szenario = {
   beschreibung:
     'Bernard bekommt mit leerem Inventar das Vorhaben „spiel bis zur Steinzeit“, besorgt sich das Soll-Inventar ' +
     '(Steinspitzhacke, Steinaxt, Steinschwert, Werkbank, Ofen) selbst und meldet „Steinzeit geschafft“, dann den Vorrat (16 Bruchstein, 16 Holz). ' +
-    'Danach: „besieg den Enderdrachen“ → er sagt, dass er schon bei der Steinzeit ist, aber weiter noch nicht kann.',
+    'Danach: „besieg den Enderdrachen“ → er will zur Eisenzeit und sagt ehrlich, dass ihm Roheisen fehlt (die Mine kommt später).',
   spieler: ['Ben'],
   kumpel: ['Ben'],
   aufbau: [
@@ -84,12 +84,12 @@ export const vorhaben: Szenario = {
     b.pruefe('Der Laufbericht ist vollständig (Start, jedes Soll-Ding, Stufenwechsel, Ende mit Grund, alles mit Zeiten)',
       fehlen.length === 0 && mitZeit, `Einträge: ${arten.join(', ') || '–'}${fehlen.length ? `; fehlt: ${fehlen.join(', ')}` : ''}${mitZeit ? '' : '; Zeiten fehlen'}`)
 
-    // 2. Höheres Ziel als umgesetzt
+    // 2. Eisenzeit ohne Eisen: Ohne Mine fehlt Roheisen
     b.setzePhase('Besieg den Enderdrachen')
     beginn = b.jetzt
     ben.sage('Bernard, besieg den Enderdrachen')
-    const antwort = await warteAufChat(beginn, /noch nicht|schon/i, 15000)
-    b.pruefe('Bernard sagt ehrlich, dass er weiter als bis zur Steinzeit noch nicht kann', !!antwort && /noch nicht/i.test(antwort.text),
+    const antwort = await warteAufChat(beginn, /fehlen|noch nicht|schief/i, 60000)
+    b.pruefe('Bernard sagt ehrlich, dass ihm für die Eisenzeit Roheisen fehlt', !!antwort && /roheisen/i.test(antwort.text),
       `Meldungen: ${vonBernard(beginn).map(c => `„${c.text}“`).join(' ') || '–'}`)
   },
 }

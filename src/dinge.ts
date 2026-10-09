@@ -35,13 +35,16 @@ export const DINGE = {
   truhe: { einzahl: 'Truhe', mehrzahl: 'Truhen', kein: 'keine Truhe', en: ['Chest', 'Chests', 'no chest'], passt: genau('chest'), herstellen: ['chest'] },
   ofen: { einzahl: 'Ofen', mehrzahl: 'Öfen', kein: 'keinen Ofen', en: ['Furnace', 'Furnaces', 'no furnace'], passt: genau('furnace'), herstellen: ['furnace'] },
   fackeln: { einzahl: 'Fackel', mehrzahl: 'Fackeln', kein: 'keine Fackeln', en: ['Torch', 'Torches', 'no torches'], passt: genau('torch'), herstellen: ['torch'] },
-  kohle: { einzahl: 'Kohle', mehrzahl: 'Kohle', kein: 'keine Kohle', en: ['Coal', 'Coal', 'no coal'], passt: genau('coal', 'charcoal') },
+  // Ohne Mine entsteht Kohle im Ofen: als Holzkohle aus Holz
+  kohle: { einzahl: 'Kohle', mehrzahl: 'Kohle', kein: 'keine Kohle', en: ['Coal', 'Coal', 'no coal'], passt: genau('coal', 'charcoal'), schmelzen: 'charcoal' },
   holzkohle: { einzahl: 'Holzkohle', mehrzahl: 'Holzkohle', kein: 'keine Holzkohle', en: ['Charcoal', 'Charcoal', 'no charcoal'], passt: genau('charcoal'), schmelzen: 'charcoal' },
   eisenbarren: { einzahl: 'Eisenbarren', mehrzahl: 'Eisenbarren', kein: 'keine Eisenbarren', en: ['Iron Ingot', 'Iron Ingots', 'no iron ingots'], passt: genau('iron_ingot'), schmelzen: 'iron_ingot' },
   goldbarren: { einzahl: 'Goldbarren', mehrzahl: 'Goldbarren', kein: 'keine Goldbarren', en: ['Gold Ingot', 'Gold Ingots', 'no gold ingots'], passt: genau('gold_ingot'), schmelzen: 'gold_ingot' },
   kupferbarren: { einzahl: 'Kupferbarren', mehrzahl: 'Kupferbarren', kein: 'keine Kupferbarren', en: ['Copper Ingot', 'Copper Ingots', 'no copper ingots'], passt: genau('copper_ingot'), schmelzen: 'copper_ingot' },
   glas: { einzahl: 'Glas', mehrzahl: 'Glas', kein: 'kein Glas', en: ['Glass', 'Glass', 'no glass'], passt: genau('glass'), schmelzen: 'glass' },
   roheisen: { einzahl: 'Roheisen', mehrzahl: 'Roheisen', kein: 'kein Roheisen', en: ['Raw Iron', 'Raw Iron', 'no raw iron'], passt: genau('raw_iron') },
+  eisenerz: { einzahl: 'Eisenerz', mehrzahl: 'Eisenerz', kein: 'kein Eisenerz', en: ['Iron Ore', 'Iron Ore', 'no iron ore'], passt: genau('iron_ore', 'deepslate_iron_ore') },
+  kohleerz: { einzahl: 'Kohleerz', mehrzahl: 'Kohleerz', kein: 'kein Kohleerz', en: ['Coal Ore', 'Coal Ore', 'no coal ore'], passt: genau('coal_ore', 'deepslate_coal_ore') },
   setzlinge: { einzahl: 'Setzling', mehrzahl: 'Setzlinge', kein: 'keine Setzlinge', en: ['Sapling', 'Saplings', 'no saplings'], passt: n => n.endsWith('_sapling') },
   holzspitzhacke: { einzahl: 'Holzspitzhacke', mehrzahl: 'Holzspitzhacken', kein: 'keine Holzspitzhacke', en: ['Wooden Pickaxe', 'Wooden Pickaxes', 'no wooden pickaxe'], passt: genau('wooden_pickaxe'), herstellen: ['wooden_pickaxe'] },
   holzaxt: { einzahl: 'Holzaxt', mehrzahl: 'Holzäxte', kein: 'keine Holzaxt', en: ['Wooden Axe', 'Wooden Axes', 'no wooden axe'], passt: genau('wooden_axe'), herstellen: ['wooden_axe'] },
@@ -51,6 +54,11 @@ export const DINGE = {
   steinaxt: { einzahl: 'Steinaxt', mehrzahl: 'Steinäxte', kein: 'keine Steinaxt', en: ['Stone Axe', 'Stone Axes', 'no stone axe'], passt: genau('stone_axe'), herstellen: ['stone_axe'] },
   steinschaufel: { einzahl: 'Steinschaufel', mehrzahl: 'Steinschaufeln', kein: 'keine Steinschaufel', en: ['Stone Shovel', 'Stone Shovels', 'no stone shovel'], passt: genau('stone_shovel'), herstellen: ['stone_shovel'] },
   steinschwert: { einzahl: 'Steinschwert', mehrzahl: 'Steinschwerter', kein: 'kein Steinschwert', en: ['Stone Sword', 'Stone Swords', 'no stone sword'], passt: genau('stone_sword'), herstellen: ['stone_sword'] },
+  eisenspitzhacke: { einzahl: 'Eisenspitzhacke', mehrzahl: 'Eisenspitzhacken', kein: 'keine Eisenspitzhacke', en: ['Iron Pickaxe', 'Iron Pickaxes', 'no iron pickaxe'], passt: genau('iron_pickaxe'), herstellen: ['iron_pickaxe'] },
+  eisenaxt: { einzahl: 'Eisenaxt', mehrzahl: 'Eisenäxte', kein: 'keine Eisenaxt', en: ['Iron Axe', 'Iron Axes', 'no iron axe'], passt: genau('iron_axe'), herstellen: ['iron_axe'] },
+  eisenschwert: { einzahl: 'Eisenschwert', mehrzahl: 'Eisenschwerter', kein: 'kein Eisenschwert', en: ['Iron Sword', 'Iron Swords', 'no iron sword'], passt: genau('iron_sword'), herstellen: ['iron_sword'] },
+  schild: { einzahl: 'Schild', mehrzahl: 'Schilde', kein: 'keinen Schild', en: ['Shield', 'Shields', 'no shield'], passt: genau('shield'), herstellen: ['shield'] },
+  eimer: { einzahl: 'Eimer', mehrzahl: 'Eimer', kein: 'keinen Eimer', en: ['Bucket', 'Buckets', 'no bucket'], passt: genau('bucket'), herstellen: ['bucket'] },
 } satisfies Record<string, Ding>
 
 export type DingName = keyof typeof DINGE
@@ -110,6 +118,13 @@ const WOERTER: Record<string, DingName> = {
   steinaxt: 'steinaxt', 'stone axe': 'steinaxt',
   steinschaufel: 'steinschaufel', 'stone shovel': 'steinschaufel',
   steinschwert: 'steinschwert', 'stone sword': 'steinschwert',
+  eisenspitzhacke: 'eisenspitzhacke', 'iron pickaxe': 'eisenspitzhacke',
+  eisenaxt: 'eisenaxt', 'iron axe': 'eisenaxt',
+  eisenschwert: 'eisenschwert', 'iron sword': 'eisenschwert',
+  schild: 'schild', schilde: 'schild', shield: 'schild', shields: 'schild',
+  eimer: 'eimer', bucket: 'eimer', buckets: 'eimer',
+  eisenerz: 'eisenerz', 'iron ore': 'eisenerz',
+  kohleerz: 'kohleerz', 'coal ore': 'kohleerz',
 }
 
 export function dingAusWort(wort: string): DingName | null {

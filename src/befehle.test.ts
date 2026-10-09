@@ -86,6 +86,18 @@ describe('erkenneBefehl – geben', () => {
     expect(erkenneBefehl(text)).toEqual({ art: 'geben', ding: null, menge: 'alle' })
   })
 
+  it.each([
+    ['gib mir 3 Eisenerz', 'eisenerz', 3],
+    ['give me 3 iron ore', 'eisenerz', 3],
+    ['gib mir 5 Kohleerz', 'kohleerz', 5],
+    ['give me 5 coal ore', 'kohleerz', 5],
+    ['gib mir den Eimer', 'eimer', 'alle'],
+    ['give me the shield', 'schild', 'alle'],
+    ['gib mir die Eisenspitzhacke', 'eisenspitzhacke', 'alle'],
+  ])('kennt die Dinge der Eisenzeit: %s → %s × %s', (text, ding, menge) => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'geben', ding, menge })
+  })
+
   it('kennt unbekannte Dinge nicht', () => {
     expect(erkenneBefehl('gib mir 3 diamanten')).toBeNull()
   })
@@ -102,6 +114,21 @@ describe('erkenneBefehl – craften', () => {
     ['stell einen ofen her', 'ofen', 1],
   ])('%s → %s × %i', (text, ding, menge) => {
     expect(erkenneBefehl(text)).toEqual({ art: 'craften', ding, menge })
+  })
+
+  it.each([
+    ['mach eine Eisenspitzhacke', 'eisenspitzhacke'],
+    ['craft an iron pickaxe', 'eisenspitzhacke'],
+    ['crafte ein Eisenschwert', 'eisenschwert'],
+    ['make an iron sword', 'eisenschwert'],
+    ['mach eine Eisenaxt', 'eisenaxt'],
+    ['craft an iron axe', 'eisenaxt'],
+    ['bau mir einen Schild', 'schild'],
+    ['make a shield', 'schild'],
+    ['mach einen Eimer', 'eimer'],
+    ['craft a bucket', 'eimer'],
+  ])('kennt die Dinge der Eisenzeit: %s → %s', (text, ding) => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'craften', ding, menge: 1 })
   })
 
   it('craftet nur, was man herstellen kann', () => {
@@ -143,6 +170,7 @@ describe('erkenneBefehl – schmelzen', () => {
     ['smelt 2 iron ingots', 'eisenbarren', 2],
     ['brenn 8 holzkohle', 'holzkohle', 8],
     ['schmelz gold', 'goldbarren', 1],
+    ['brenn 8 kohle', 'kohle', 8],
   ])('%s → %s × %i', (text, ding, menge) => {
     expect(erkenneBefehl(text)).toEqual({ art: 'craften', ding, menge })
   })

@@ -31,7 +31,21 @@ export const STUFEN: Stufe[] = [
       { ding: 'holz', menge: 16 },
     ],
   },
-  { nummer: 2, name: 'Eisenzeit', soll: [], vorrat: [] },
+  {
+    nummer: 2,
+    name: 'Eisenzeit',
+    soll: [
+      { ding: 'eisenspitzhacke', menge: 1 },
+      { ding: 'eisenschwert', menge: 1 },
+      { ding: 'schild', menge: 1 },
+      { ding: 'eimer', menge: 1 },
+    ],
+    vorrat: [
+      { ding: 'fackeln', menge: 32 },
+      { ding: 'stein', menge: 32 },
+      { ding: 'kohle', menge: 8 },
+    ],
+  },
   { nummer: 3, name: 'Diamantzeit', soll: [], vorrat: [] },
   { nummer: 4, name: 'Nether', soll: [], vorrat: [] },
   { nummer: 5, name: 'End', soll: [], vorrat: [] },

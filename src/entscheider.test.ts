@@ -62,8 +62,20 @@ describe('naechsterSchritt', () => {
     expect(naechsterSchritt({ inventar: STEINZEIT, zielstufe: 1 })).toEqual({ art: 'fertig', grund: 'zielErreicht', stufe: 1 })
   })
 
-  it('hört nach der Steinzeit auf, wenn die Zielstufe noch nicht umgesetzt ist', () => {
-    expect(naechsterSchritt({ inventar: STEINZEIT, zielstufe: 5 })).toEqual({ art: 'fertig', grund: 'stufeNichtUmgesetzt', stufe: 1 })
+  it('arbeitet nach der Steinzeit an der Eisenzeit, auch beim Enderdrachen', () => {
+    expect(naechsterSchritt({ inventar: STEINZEIT, zielstufe: 5 })).toEqual({ art: 'besorge', ding: 'eisenspitzhacke', menge: 1 })
+    expect(naechsterSchritt({ inventar: STEINZEIT, zielstufe: 2 })).toEqual({ art: 'besorge', ding: 'eisenspitzhacke', menge: 1 })
+  })
+
+  it('besorgt die Eisenzeit in der Reihenfolge Eisenspitzhacke, Eisenschwert, Schild, Eimer', () => {
+    expect(naechsterSchritt({ inventar: { ...STEINZEIT, iron_pickaxe: 1 }, zielstufe: 2 })).toEqual({ art: 'besorge', ding: 'eisenschwert', menge: 1 })
+    expect(naechsterSchritt({ inventar: { ...STEINZEIT, iron_pickaxe: 1, iron_sword: 1 }, zielstufe: 2 })).toEqual({ art: 'besorge', ding: 'schild', menge: 1 })
+    expect(naechsterSchritt({ inventar: { ...STEINZEIT, iron_pickaxe: 1, iron_sword: 1, shield: 1 }, zielstufe: 2 })).toEqual({ art: 'besorge', ding: 'eimer', menge: 1 })
+  })
+
+  it('hört nach der Eisenzeit auf, wenn die nächste Stufe noch nicht umgesetzt ist', () => {
+    const inventar = { ...STEINZEIT, iron_pickaxe: 1, iron_sword: 1, shield: 1, bucket: 1, torch: 32, cobblestone: 32, coal: 8 }
+    expect(naechsterSchritt({ inventar, zielstufe: 5 })).toEqual({ art: 'fertig', grund: 'stufeNichtUmgesetzt', stufe: 2 })
   })
 
   it('arbeitet auch bei hoher Zielstufe zuerst die Steinzeit ab', () => {

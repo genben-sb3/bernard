@@ -23,9 +23,10 @@ import { normalwelt } from './szenarien/normalwelt'
 import { tod } from './szenarien/tod'
 import { stufe1 } from './szenarien/stufe1'
 import { faehigkeiten } from './szenarien/faehigkeiten'
+import { eisenzeit } from './szenarien/eisenzeit'
 import { Testspieler, warte } from './testspieler'
 
-const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki, englisch, vorhaben, zeitlimit, unterbrechen, weiterziehen, schmelzen, aufstellen, normalwelt, tod, stufe1, faehigkeiten }
+const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki, englisch, vorhaben, zeitlimit, unterbrechen, weiterziehen, schmelzen, aufstellen, normalwelt, tod, stufe1, faehigkeiten, eisenzeit }
 
 const BODEN = -60
 
