@@ -2,6 +2,8 @@
 
 **Status:** offen · **Label:** ready-for-agent · **Blockiert von:** 004 und 012 in `main`, 011 (Vorhaben-Tickets 01–07) · **Version:** 1 (Grilling vom 2026-10-09)
 
+**Tickets:** aufgeteilt in `.scratch/eisenzeit/issues/` (01–07, siehe dortige INDEX.md).
+
 ## Problem Statement
 
 Bernard kann ein Vorhaben bis zur Steinzeit verfolgen, aber nicht weiter. Für die Eisenzeit fehlt ihm dreierlei. Er kann kein Erz abbauen. Er hat keinen festen Ort, an dem Ofen, Werkbank und Überschuss bleiben. Und das Stufenmodell zählt Verbrauchsgüter mit: Verbaut Bernard ein paar Fackeln oder etwas Bruchstein, fällt er rechnerisch auf eine niedrigere Stufe zurück, obwohl er nichts verloren hat.
