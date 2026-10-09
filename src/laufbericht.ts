@@ -2,7 +2,7 @@
 // Pur: bekommt Inventare und schreibt Einträge, woanders landen sie in einer Datei.
 import type { DingName } from './dinge'
 import type { Ort } from './entscheider'
-import { aktuelleStufe, anzahl, STUFEN, type Inventar } from './stufen'
+import { aktuelleStufe, anzahl, rueckfall, STUFEN, type Inventar } from './stufen'
 
 export type Endgrund = 'zielErreicht' | 'stufeNichtUmgesetzt' | 'vergessen' | 'abgebrochen' | 'gescheitert' | 'zeitlimit'
 
@@ -22,6 +22,9 @@ export type Eintrag = {
   | { art: 'weiterziehen'; ding: DingName; von: Ort; nach: Ort }
   /** `ding` war mehrmals hintereinander nicht zu finden: Bernard meldet sich und pausiert das Vorhaben. */
   | { art: 'aufgeben'; ding: DingName; fehlschlaege: number }
+  /** Bernard ist gestorben; stufe: die Stufe davor. */
+  | { art: 'tod'; stufe: number }
+  | { art: 'rueckfall'; von: number; nach: number }
   | { art: 'ende'; grund: Endgrund; stufe: number }
 )
 
@@ -71,6 +74,13 @@ export function erstelleLaufbericht(schreibe: (eintrag: Eintrag) => void, uhr: U
     },
     aufgeben(ding: DingName, fehlschlaege: number) {
       eintragen({ art: 'aufgeben', ding, fehlschlaege })
+    },
+    /** Ein Tod mit dem Inventar davor und danach; sinkt die Stufe, auch der Rückfall. */
+    tod(vorher: Inventar, nachher: Inventar) {
+      eintragen({ art: 'tod', stufe: aktuelleStufe(vorher) })
+      const r = rueckfall(vorher, nachher)
+      if (r) eintragen({ art: 'rueckfall', ...r })
+      stufe = aktuelleStufe(nachher)
     },
     ende(grund: Endgrund, inventar: Inventar) {
       eintragen({ art: 'ende', grund, stufe: aktuelleStufe(inventar) })

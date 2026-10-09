@@ -10,6 +10,7 @@ import type { Szenario } from './szenario'
 import { folgen } from './szenarien/folgen'
 import { sammeln } from './szenarien/sammeln'
 import { besorgen } from './szenarien/besorgen'
+import { englisch } from './szenarien/englisch'
 import { ki } from './szenarien/ki'
 import { werkzeug } from './szenarien/werkzeug'
 import { vorhaben } from './szenarien/vorhaben'
@@ -18,9 +19,10 @@ import { weiterziehen } from './szenarien/weiterziehen'
 import { schmelzen } from './szenarien/schmelzen'
 import { unterbrechen } from './szenarien/unterbrechen'
 import { normalwelt } from './szenarien/normalwelt'
+import { tod } from './szenarien/tod'
 import { Testspieler, warte } from './testspieler'
 
-const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki, vorhaben, zeitlimit, unterbrechen, weiterziehen, schmelzen, normalwelt }
+const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki, englisch, vorhaben, zeitlimit, unterbrechen, weiterziehen, schmelzen, normalwelt, tod }
 
 const BODEN = -60
 

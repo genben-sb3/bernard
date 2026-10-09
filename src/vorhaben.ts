@@ -3,11 +3,11 @@
 import type { Bot } from 'mineflayer'
 import pathfinderPkg from 'mineflayer-pathfinder'
 import type { Abbruch } from './auftrag'
-import { besorge } from './besorgen'
+import { besorge, nichtGefundenText } from './besorgen'
 import { naechsterSchritt, WEITERZIEH_STRECKE, zaehleFehlschlag, type Aktion, type Fehlschlag, type Ort } from './entscheider'
 import { DINGE, mitMenge } from './dinge'
 import type { Endgrund, Laufbericht } from './laufbericht'
-import { aktuelleStufe, bisZu, fehlendes, STUFEN, type Inventar } from './stufen'
+import { aktuelleStufe, bisZu, fehlendes, rueckfall, STUFEN, type Inventar } from './stufen'
 
 const { goals } = pathfinderPkg
 
@@ -20,6 +20,29 @@ export function inventarVon(bot: Bot): Inventar {
   const inventar: Record<string, number> = {}
   for (const item of bot.inventory.items()) inventar[item.name] = (inventar[item.name] ?? 0) + item.count
   return inventar
+}
+
+/** So oft merkt sich Bernard sein Inventar, damit er nach einem Tod weiß, was er hatte. */
+const INVENTAR_MERKEN_MS = 500
+/** So lange wartet Bernard nach dem Respawn, bis die Welt um ihn herum geladen ist. */
+const NACH_RESPAWN_MS = 1000
+
+/**
+ * Merkt sich laufend das Inventar, solange Bernard lebt. Der Server leert das Inventar beim Tod, bevor er den
+ * Tod meldet: Wer erst beim Tod nachschaut, sieht schon nichts mehr.
+ */
+export function merkeInventar(bot: Bot): () => Inventar {
+  let gemerkt: Inventar = {}
+  const merke = () => { if (bot.entity && bot.health > 0) gemerkt = inventarVon(bot) }
+  const takt = setInterval(merke, INVENTAR_MERKEN_MS)
+  bot.once('end', () => clearInterval(takt))
+  return () => gemerkt
+}
+
+/** Was Bernard nach einem Tod sagt: den Rückfall, wenn die Stufe gesunken ist, sonst dass er weitermacht. */
+export function todesansage(vorher: Inventar, nachher: Inventar, zielstufe: number): string {
+  const r = rueckfall(vorher, nachher)
+  return r ? `Ich bin gestorben, zurück auf Stufe ${r.nach}.` : `Ich bin gestorben, ich mach weiter bis ${bisZu(zielstufe)}.`
 }
 
 /** aktiv: arbeitet daran · unterbrochen: ein Befehl läuft · pausiert: wartet auf „mach weiter“ */
@@ -105,6 +128,24 @@ export class Vorhaben {
     this.o.laufbericht?.ende(grund, inventarVon(this.bot))
     this.o.protokoll?.(`Vorhaben: beendet (${grund})`)
     this.o.beiEnde?.(grund)
+  }
+
+  /**
+   * Bernard ist gestorben (respawnt von selbst): Tod und Rückfall festhalten, ansagen und nach dem Respawn
+   * weitermachen. Ein laufender Befehl ist mit dem Tod vorbei, ein pausiertes Vorhaben bleibt pausiert.
+   */
+  nachTod(vorher: Inventar) {
+    if (this.status === 'beendet') return
+    this.halteDurchgangAn(true)
+    const nachher = inventarVon(this.bot)
+    this.o.laufbericht?.tod(vorher, nachher)
+    const r = rueckfall(vorher, nachher)
+    this.o.protokoll?.(`Vorhaben: gestorben auf Stufe ${aktuelleStufe(vorher)}${r ? `, Rückfall auf Stufe ${r.nach}` : ''}`)
+    this.o.melde(todesansage(vorher, nachher, this.zielstufe))
+    if (this.status === 'unterbrochen') this.status = 'aktiv'
+    this.bot.once('spawn', () => {
+      setTimeout(() => { if (this.status === 'aktiv') void this.laufe() }, NACH_RESPAWN_MS)
+    })
   }
 
   /** Antwort auf „was machst du?“: Vorhaben, Stufe, was fehlt, was gerade passiert. */
@@ -227,7 +268,7 @@ export class Vorhaben {
       this.o.laufbericht?.beobachte(inventarVon(this.bot))
       if (abbruch.abgebrochen || ergebnis.art === 'abgebrochen') return null
       if (ergebnis.art === 'nichtGefunden') {
-        this.o.protokoll?.(`Vorhaben: ${ergebnis.text}`)
+        this.o.protokoll?.(`Vorhaben: ${nichtGefundenText(ergebnis)}`)
         const hier = this.position()
         this.besuche(hier)
         this.fehlschlag = zaehleFehlschlag(this.fehlschlag, { art: 'nichtGefunden', ding: ergebnis.material, wo: hier })

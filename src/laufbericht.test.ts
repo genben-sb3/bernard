@@ -56,6 +56,35 @@ describe('Laufbericht', () => {
     ])
   })
 
+  it('hält einen Tod mit der Stufe davor fest, ohne Rückfall, wenn die Stufe bleibt', () => {
+    const { eintraege, laufbericht } = bericht()
+    laufbericht.start(1, {})
+    laufbericht.tod({ stone_pickaxe: 1 }, {})
+    expect(eintraege.slice(1).map(ohneZeit)).toEqual([{ art: 'tod', stufe: 0 }])
+  })
+
+  it('hält nach einem Tod den Rückfall fest, und danach keinen zusätzlichen Stufenwechsel', () => {
+    const { eintraege, laufbericht } = bericht()
+    laufbericht.start(2, STEINZEIT)
+    laufbericht.tod(STEINZEIT, {})
+    laufbericht.beobachte({})
+    expect(eintraege.slice(1).map(ohneZeit)).toEqual([
+      { art: 'tod', stufe: 1 },
+      { art: 'rueckfall', von: 1, nach: 0 },
+    ])
+  })
+
+  it('gibt Tod und Rückfall Spiel- und Echtzeit mit', () => {
+    const { eintraege, laufbericht } = bericht()
+    laufbericht.start(2, STEINZEIT)
+    laufbericht.tod(STEINZEIT, {})
+    for (const e of eintraege.slice(1)) {
+      expect(e.spielzeit).toBeGreaterThan(1000)
+      expect(e.echtzeit).toMatch(/^2026-10-09T10:00:0\d/)
+      expect(e.sekunden).toBeGreaterThan(0)
+    }
+  })
+
   it('endet mit Grund und Stufe', () => {
     const { eintraege, laufbericht } = bericht()
     laufbericht.start(1, {})

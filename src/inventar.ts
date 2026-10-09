@@ -3,27 +3,29 @@ import type { Bot } from 'mineflayer'
 import type { Entity } from 'prismarine-entity'
 import pathfinderPkg from 'mineflayer-pathfinder'
 import { halteAn, type Abbruch } from './auftrag'
-import { dingFuer, nameFuer, mitMenge, type DingSchluessel } from './dinge'
+import { dingFuer, kein, nameFuer, mitMenge, type DingSchluessel } from './dinge'
+import { aufzaehlung, texte, type Sprache } from './texte'
 import { warteAufInventarRuhe } from './ruhe'
 
 const { goals } = pathfinderPkg
 
 const MAX_EINTRAEGE = 8
 
-/** Eine Zeile wie „Ich habe 12 Eichenholz, 1 Holzspitzhacke und 3 Setzlinge.“ */
-export function beschreibeInventar(bot: Bot): string {
+/** Eine Zeile wie „Ich habe 12 Eichenstämme, 1 Holzspitzhacke und 3 Setzlinge.“ */
+export function beschreibeInventar(bot: Bot, sprache: Sprache = 'de'): string {
+  const t = texte(sprache)
   const summen = new Map<string, { anzahl: number; englisch: string }>()
   for (const item of bot.inventory.items()) {
     const bisher = summen.get(item.name)
     summen.set(item.name, { anzahl: (bisher?.anzahl ?? 0) + item.count, englisch: item.displayName })
   }
-  if (summen.size === 0) return 'Meine Taschen sind leer.'
+  if (summen.size === 0) return t.taschenLeer
   const teile = [...summen.entries()]
     .sort((a, b) => b[1].anzahl - a[1].anzahl)
-    .map(([name, { anzahl, englisch }]) => nameFuer(name, anzahl, englisch))
+    .map(([name, { anzahl, englisch }]) => nameFuer(name, anzahl, englisch, sprache))
   const gezeigt = teile.slice(0, MAX_EINTRAEGE)
-  if (teile.length > MAX_EINTRAEGE) gezeigt.push(`${teile.length - MAX_EINTRAEGE} weitere Sachen`)
-  return `Ich habe ${aufzaehlung(gezeigt)}.`
+  if (teile.length > MAX_EINTRAEGE) gezeigt.push(t.weitere(teile.length - MAX_EINTRAEGE))
+  return t.ichHabe(aufzaehlung(gezeigt, sprache))
 }
 
 export type Geben =
@@ -89,19 +91,16 @@ async function mitZeitlimit<T>(versprechen: Promise<T>, ms: number): Promise<T> 
 }
 
 /** Antworttext zu einem Geben-Ergebnis. */
-export function antwortZumGeben(ergebnis: Geben, ding: DingSchluessel | null, verlangt: number | 'alle'): string {
+export function antwortZumGeben(ergebnis: Geben, ding: DingSchluessel | null, verlangt: number | 'alle', sprache: Sprache = 'de'): string {
+  const t = texte(sprache)
   switch (ergebnis.art) {
     case 'nichtDa':
-      return ding ? `Ich habe ${dingFuer(ding).kein}.` : 'Meine Taschen sind leer.'
+      return ding ? t.habeKein(kein(ding, sprache)) : t.taschenLeer
     case 'nichtErreicht':
-      return 'Ich komme nicht zu dir durch.'
+      return t.nichtErreicht
     case 'gegeben':
-      if (!ding) return 'Hier, alles was ich habe!'
-      if (verlangt !== 'alle' && ergebnis.anzahl < verlangt) return `Ich habe nur ${mitMenge(ding, ergebnis.anzahl)}, hier!`
-      return `Hier, ${mitMenge(ding, ergebnis.anzahl)}!`
+      if (!ding) return t.hierAlles
+      if (verlangt !== 'alle' && ergebnis.anzahl < verlangt) return t.nurSoViel(mitMenge(ding, ergebnis.anzahl, sprache))
+      return t.hier(mitMenge(ding, ergebnis.anzahl, sprache))
   }
-}
-
-function aufzaehlung(teile: string[]) {
-  return teile.length === 1 ? teile[0] : `${teile.slice(0, -1).join(', ')} und ${teile.at(-1)}`
 }

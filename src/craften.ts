@@ -7,7 +7,8 @@ import { halteAn, type Abbruch } from './auftrag'
 import type { Recipe } from 'prismarine-recipe'
 import { erstellePlanner, type Bestand } from './craftplan'
 import { baueAb, platziere, warumNichtPlatzieren } from './eingriffe'
-import { DINGE, dingFuer, nameFuer, type DingSchluessel } from './dinge'
+import { DINGE, dingAufloeser, dingFuer, mitMenge, type DingSchluessel } from './dinge'
+import { aufzaehlung, texte, type Sprache } from './texte'
 import { warteAufInventarRuhe } from './ruhe'
 
 const { goals } = pathfinderPkg
@@ -22,7 +23,7 @@ export type Craftergebnis =
 const WERKBANK_REICHWEITE = 4
 
 export async function crafte(bot: Bot, ding: DingSchluessel, menge: number, abbruch: Abbruch,
-  melde: (text: string) => void = () => {}, protokoll: (text: string) => void = () => {}): Promise<Craftergebnis> {
+  melde: (text: string) => void = () => {}, protokoll: (text: string) => void = () => {}, sprache: Sprache = 'de'): Promise<Craftergebnis> {
   const d = dingFuer(ding)
   const ziele = (d.herstellen ?? []).map(n => bot.registry.itemsByName[n]?.id).filter((i): i is number => i !== undefined)
   const zaehle = () => bot.inventory.items().filter(i => d.passt(i.name)).reduce((s, i) => s + i.count, 0)
@@ -31,8 +32,8 @@ export async function crafte(bot: Bot, ding: DingSchluessel, menge: number, abbr
   let werkbank = werkbankInDerNaehe(bot)
   const bekannt = (id: number) => Object.values(DINGE).some(x => x.passt(bot.registry.items[id].name))
   const plan = erstellePlanner(bot.registry, bekannt).plane(ziele, menge, bestand(bot), !!werkbank)
-  if (plan.art === 'fehlt') return { art: 'fehlt', text: beschreibeFehlendes(bot, plan.fehlt), fehlt: plan.fehlt }
-  if (plan.brauchtWerkbank && !werkbank) melde('Moment, ich stelle kurz eine Werkbank auf.')
+  if (plan.art === 'fehlt') return { art: 'fehlt', text: beschreibeFehlendes(bot, plan.fehlt, sprache), fehlt: plan.fehlt }
+  if (plan.brauchtWerkbank && !werkbank) melde(texte(sprache).werkbankAufstellen)
   protokoll(`Craften: Plan ${plan.schritte.map(s => `${s.mal}× ${bot.registry.items[s.rezept.result.id].name}`).join(', ')}`)
 
   let aufgestellt: Block | null = null
@@ -162,19 +163,15 @@ export async function nimmMit(bot: Bot, werkbank: Block, abbruch: Abbruch, proto
   }
 }
 
-function beschreibeFehlendes(bot: Bot, fehlt: Bestand) {
-  // Alle Holzsorten zusammen als „Holz“
-  const zusammen = new Map<string, number>()
+/** „3 Holz und 2 Bruchstein“ / „3 Wood and 2 Cobblestone“. Alle Holzsorten zählen zusammen als Holz. */
+export function beschreibeFehlendes(bot: Bot, fehlt: Bestand, sprache: Sprache = 'de') {
+  const aufloesen = dingAufloeser(bot)
+  const zusammen = new Map<DingSchluessel, number>()
   for (const [id, anzahl] of fehlt) {
-    const item = bot.registry.items[id]
-    const text = nameFuer(item.name, 1, item.displayName).replace(/^1 /, '')
-    zusammen.set(text, (zusammen.get(text) ?? 0) + anzahl)
+    const name = bot.registry.items[id].name
+    const ding = DINGE.holz.passt(name) ? 'holz' : aufloesen(name)
+    if (!ding) continue
+    zusammen.set(ding, (zusammen.get(ding) ?? 0) + anzahl)
   }
-  const teile = [...zusammen].map(([name, anzahl]) => `${anzahl} ${anzahl === 1 ? name : mehrzahl(name)}`)
-  return teile.length === 1 ? teile[0] : `${teile.slice(0, -1).join(', ')} und ${teile.at(-1)}`
-}
-
-function mehrzahl(einzahl: string) {
-  const d = Object.values(DINGE).find(x => x.einzahl === einzahl)
-  return d ? d.mehrzahl : einzahl
+  return aufzaehlung([...zusammen].map(([ding, anzahl]) => mitMenge(ding, anzahl, sprache)), sprache)
 }

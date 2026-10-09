@@ -57,7 +57,7 @@ function mengeUndDing(rest: string): { menge: number | null; ding: DingName } | 
 const INVENTAR = /^(was hast du( dabei| bei dir| im inventar)?|(zeig )?(dein |mir dein )?inventar|inventory|what do you have|what('s| is) in your inventory)$/
 const GEBEN = /^(gib|give)( mir| me) (.+)$/
 const ALLES = /^(alles|everything|all deine sachen|all your stuff|all your items)$/
-const CRAFTEN = /^(mach|mache|crafte|craft|bau|baue|stell)( mir| me)? (.+?)( her)?$/
+const CRAFTEN = /^(mach|mache|crafte|craft|make|bau|baue|stell)( mir| me)? (.+?)( her)?$/
 const SCHMELZEN = /^(schmelz|schmilz|schmelze|smelt|brenn|brenne)( mir| me)? (.+)$/
 
 /** Wörter für Stufen → Nummer. */

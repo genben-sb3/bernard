@@ -2,7 +2,8 @@
 import type { Bot } from 'mineflayer'
 import type { Material } from './befehle'
 import { crafte } from './craften'
-import { DINGE, dingFuer, mitMenge, type DingName, type DingSchluessel } from './dinge'
+import { DINGE, dingFuer, kein, mehrzahl, mitMenge, type DingName, type DingSchluessel } from './dinge'
+import { aufzaehlung, texte, type Sprache } from './texte'
 import type { Abbruch } from './auftrag'
 import { MATERIALIEN, sammle } from './sammeln'
 import { schmelze } from './schmelzen'
@@ -44,7 +45,7 @@ export type Besorgergebnis =
   /** Nicht sammelbar oder gar nicht herstellbar */
   | { art: 'fehlt'; text: string }
   /** Sammelbar, aber in der Nähe nicht (mehr) zu finden */
-  | { art: 'nichtGefunden'; text: string; material: Material }
+  | { art: 'nichtGefunden'; material: Material; /** was fürs Craften noch fehlt, schon als Text */ fehlt?: string }
   | { art: 'keinPlatz' }
   | { art: 'abgebrochen' }
 
@@ -53,6 +54,8 @@ export type Besorgkontext = {
   /** Ansagen im Chat („Dafür hole ich erst 3 Holz.“) */
   melde: (text: string) => void
   protokoll?: (text: string) => void
+  /** Sprache für Ansagen und Ergebnistexte (Standard: Deutsch) */
+  sprache?: Sprache
 }
 
 const MAX_RUNDEN = 6
@@ -68,7 +71,7 @@ export async function besorge(bot: Bot, ding: DingSchluessel, gesamt: number, k:
   const zaehle = () => bot.inventory.items().filter(i => dingFuer(ding).passt(i.name)).reduce((s, i) => s + i.count, 0)
   const start = zaehle()
   if (start >= gesamt) return { art: 'fertig', anzahl: 0, unterwegs: false }
-  if (tiefe > MAX_TIEFE) return { art: 'fehlt', text: mitMenge(ding, gesamt - start) }
+  if (tiefe > MAX_TIEFE) return { art: 'fehlt', text: mitMenge(ding, gesamt - start, k.sprache) }
   if (istSammelbar(ding)) return sammleMitWerkzeug(bot, ding, gesamt - start, k, tiefe)
   const ergebnis = dingFuer(ding).schmelzen
   return ergebnis
@@ -79,8 +82,11 @@ export async function besorge(bot: Bot, ding: DingSchluessel, gesamt: number, k:
 /** Was Bernard für ein Ofenergebnis selbst sammeln kann (Erze kann er noch nicht abbauen). */
 const OFEN_ZUTAT: Record<string, Material> = { glass: 'sand', stone: 'stein', charcoal: 'holz' }
 /** Wie Bernard eine fehlende Zutat nennt, die er nicht selbst sammeln kann. */
-const OFEN_ZUTAT_NAME: Record<string, [string, string]> = {
-  iron_ingot: ['Roheisen', 'Roheisen'], gold_ingot: ['Rohgold', 'Rohgold'], copper_ingot: ['Rohkupfer', 'Rohkupfer'], smooth_stone: ['Stein', 'Steine'],
+const OFEN_ZUTAT_NAME: Record<string, Record<Sprache, [string, string]>> = {
+  iron_ingot: { de: ['Roheisen', 'Roheisen'], en: ['Raw Iron', 'Raw Iron'] },
+  gold_ingot: { de: ['Rohgold', 'Rohgold'], en: ['Raw Gold', 'Raw Gold'] },
+  copper_ingot: { de: ['Rohkupfer', 'Rohkupfer'], en: ['Raw Copper', 'Raw Copper'] },
+  smooth_stone: { de: ['Stein', 'Steine'], en: ['Stone', 'Stone'] },
 }
 /** Schmelzvorgänge pro Stamm als Brennstoff */
 const STAMM_BRENNT = 1.5
@@ -106,8 +112,9 @@ async function schmelzeMitZutaten(bot: Bot, ergebnis: string, gesamt: number, k:
     if (versuch.eingabe > 0) {
       const zutat = OFEN_ZUTAT[ergebnis]
       if (!zutat) {
-        const [einzahl, mehrzahl] = OFEN_ZUTAT_NAME[ergebnis] ?? ['Zutat', 'Zutaten']
-        return { art: 'fehlt', text: `${versuch.eingabe} ${versuch.eingabe === 1 ? einzahl : mehrzahl}` }
+        const sprache = k.sprache ?? 'de'
+        const [eins, viele] = OFEN_ZUTAT_NAME[ergebnis]?.[sprache] ?? (sprache === 'en' ? ['ingredient', 'ingredients'] : ['Zutat', 'Zutaten'])
+        return { art: 'fehlt', text: `${versuch.eingabe} ${versuch.eingabe === 1 ? eins : viele}` }
       }
       if (zutat === 'holz') holz += versuch.eingabe
       else auftraege.push({ ding: zutat, menge: versuch.eingabe })
@@ -119,7 +126,7 @@ async function schmelzeMitZutaten(bot: Bot, ergebnis: string, gesamt: number, k:
     unterwegs = unterwegs || geholt.unterwegs
   }
   k.protokoll?.(`Besorgen: ${ergebnis} nach ${MAX_RUNDEN} Runden aufgegeben`)
-  return { art: 'fehlt', text: mitMenge(schmelzDingFuer(ergebnis) ?? 'kohle', gesamt - zaehle()) }
+  return { art: 'fehlt', text: mitMenge(schmelzDingFuer(ergebnis) ?? 'kohle', gesamt - zaehle(), k.sprache) }
 }
 
 type Auftrag = { ding: DingSchluessel; menge: number }
@@ -127,11 +134,11 @@ type Auftrag = { ding: DingSchluessel; menge: number }
 /** Sagt an, was Bernard erst holt, und besorgt es nacheinander (`menge` zusätzlich zum Bestand). */
 async function holeAlles(bot: Bot, auftraege: Auftrag[], k: Besorgkontext, tiefe: number, fehltNoch?: string): Promise<Besorgergebnis> {
   let unterwegs = false
-  k.melde(`Dafür hole ich erst ${aufzaehlung(auftraege.map(a => mitMenge(a.ding, a.menge)))}.`)
+  k.melde(texte(k.sprache ?? 'de').holeErst(aufzaehlung(auftraege.map(a => mitMenge(a.ding, a.menge, k.sprache)), k.sprache ?? 'de')))
   for (const auftrag of auftraege) {
     const bestand = bot.inventory.items().filter(i => dingFuer(auftrag.ding).passt(i.name)).reduce((s, i) => s + i.count, 0)
     const teil = await besorge(bot, auftrag.ding, bestand + auftrag.menge, k, tiefe + 1)
-    if (teil.art === 'nichtGefunden' && fehltNoch) return { ...teil, text: `${teil.text} Mir fehlen noch ${fehltNoch}.` }
+    if (teil.art === 'nichtGefunden') return { ...teil, fehlt: teil.fehlt ?? fehltNoch }
     if (teil.art !== 'fertig') return teil
     unterwegs = unterwegs || teil.unterwegs
   }
@@ -141,14 +148,16 @@ async function holeAlles(bot: Bot, auftraege: Auftrag[], k: Besorgkontext, tiefe
 async function sammleMitWerkzeug(bot: Bot, material: Material, menge: number, k: Besorgkontext, tiefe: number): Promise<Besorgergebnis> {
   let ergebnis = await sammle(bot, material, menge, k.abbruch, k.protokoll)
   if (ergebnis.art === 'werkzeugFehlt') {
-    k.melde(`Für ${DINGE[material].mehrzahl} brauche ich erst eine Holzspitzhacke.`)
+    k.melde(texte(k.sprache ?? 'de').erstHolzspitzhacke(mehrzahl(material, k.sprache)))
     const werkzeug = await besorge(bot, 'holzspitzhacke', 1, k, tiefe + 1)
     if (werkzeug.art !== 'fertig') return werkzeug
     ergebnis = await sammle(bot, material, menge, k.abbruch, k.protokoll)
   }
   if (ergebnis.art === 'abgebrochen' || k.abbruch.abgebrochen) return { art: 'abgebrochen' }
-  if (ergebnis.art === 'werkzeugFehlt') return { art: 'fehlt', text: `${ergebnis.werkzeug} für ${DINGE[material].mehrzahl}` }
-  if (ergebnis.art === 'nichtsGefunden') return { art: 'nichtGefunden', text: `Ich finde hier ${DINGE[material].kein}.`, material }
+  if (ergebnis.art === 'werkzeugFehlt') {
+    return { art: 'fehlt', text: texte(k.sprache ?? 'de').werkzeugFuer(ergebnis.werkzeug, mehrzahl(material, k.sprache)) }
+  }
+  if (ergebnis.art === 'nichtsGefunden') return { art: 'nichtGefunden', material }
   return { art: 'fertig', anzahl: ergebnis.anzahl, unterwegs: true }
 }
 
@@ -158,7 +167,7 @@ async function crafteMitZutaten(bot: Bot, ding: DingSchluessel, gesamt: number, 
   let letzterText = ''
   for (let runde = 0; runde < MAX_RUNDEN; runde++) {
     if (k.abbruch.abgebrochen) return { art: 'abgebrochen' }
-    const versuch = await crafte(bot, ding, gesamt - zaehle(), k.abbruch, k.melde, k.protokoll)
+    const versuch = await crafte(bot, ding, gesamt - zaehle(), k.abbruch, k.melde, k.protokoll, k.sprache)
     if (versuch.art === 'fertig') return { art: 'fertig', anzahl: zaehle() - start, unterwegs }
     if (versuch.art !== 'fehlt') return versuch
     letzterText = versuch.text
@@ -181,6 +190,9 @@ async function crafteMitZutaten(bot: Bot, ding: DingSchluessel, gesamt: number, 
   return { art: 'fehlt', text: letzterText }
 }
 
-function aufzaehlung(teile: string[]) {
-  return teile.length === 1 ? teile[0] : `${teile.slice(0, -1).join(', ')} und ${teile.at(-1)}`
+/** Text für „nicht gefunden“: „Ich finde hier keinen Bruchstein. Mir fehlen noch 8 Bruchstein.“ */
+export function nichtGefundenText(ergebnis: { material: Material; fehlt?: string }, sprache: Sprache = 'de') {
+  const t = texte(sprache)
+  const nichts = kein(ergebnis.material, sprache)
+  return ergebnis.fehlt ? t.findeNicht(nichts, ergebnis.fehlt) : t.findeNichtKurz(nichts)
 }
