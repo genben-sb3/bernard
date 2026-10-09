@@ -109,6 +109,32 @@ describe('erkenneBefehl – craften', () => {
   })
 })
 
+describe('erkenneBefehl – bauen', () => {
+  it.each([
+    ['bau mir eine Holzspitzhacke', 'holzspitzhacke', 1],
+    ['baue eine Werkbank', 'werkbank', 1],
+    ['bau mir 2 öfen', 'ofen', 2],
+    ['build me a crafting table', 'werkbank', 1],
+  ])('„%s“ craftet, weil es ein Gegenstand ist → %s × %i', (text, ding, menge) => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'craften', ding, menge })
+  })
+
+  it.each([
+    'bau eine Hütte',
+    'bau mir ein Haus',
+    'baue eine Mauer um das Dorf',
+    'bau mir 3 holz',
+    'build a house',
+    'build me a bridge',
+  ])('„%s“ ist Bauen, das Bernard noch nicht kann', text => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'bauen' })
+  })
+
+  it('lässt „mach“ mit Unbekanntem weiter an die KI gehen', () => {
+    expect(erkenneBefehl('mach mir eine Hütte')).toBeNull()
+  })
+})
+
 describe('erkenneBefehl – Füllwörter', () => {
   it.each([
     ['bleib mal da stehen', 'stopp'],

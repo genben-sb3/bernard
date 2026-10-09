@@ -11,6 +11,7 @@ describe('erkenneSprache', () => {
     ['was hast du dabei', 'de'], ['what do you have', 'en'],
     ['gib mir alles', 'de'], ['give me everything', 'en'],
     ['mach eine werkbank', 'de'], ['craft 2 sticks', 'en'],
+    ['bau eine Hütte', 'de'], ['build a house', 'en'],
     ['kannst du mir zwei Leitern craften?', 'de'], ['could you get me some wood please', 'en'],
   ] as const)('%s → %s', (text, sprache) => {
     expect(erkenneSprache(text)).toBe(sprache)

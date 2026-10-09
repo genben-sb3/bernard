@@ -8,7 +8,7 @@ Eine Datei pro Ticket. Abarbeiten, sobald die Blocker erledigt sind. Begriffe st
 | ~~002~~ | [KI-Anbindung für freie Sätze und unbekannte Gegenstände](002-ki-anbindung-freie-saetze.md) ✅ | 1 | – |
 | ~~003~~ | [Antwort in der Sprache des Befehls](003-antwortsprache-wie-befehl.md) ✅ | 1 | – |
 | 004 | [Schmelzen im Ofen](004-schmelzen-im-ofen.md) | 2 | 001 (sinnvoll) |
-| 005 | [„bau“ fürs Bauen freihalten](005-bau-fuer-bauen-freihalten.md) | 1 | – |
+| ~~005~~ | [„bau“ fürs Bauen freihalten](005-bau-fuer-bauen-freihalten.md) ✅ | 1 | – |
 | 006 | [Kämpfen und Beschützen](006-kaempfen-und-beschuetzen.md) | 1 | – |
 | 007 | [Geschützte Bereiche](007-geschuetzte-bereiche.md) | 1 | – (zurückgestellt) |
 | 008 | [Beitreten, wenn ein Kumpel online kommt](008-beitreten-wenn-kumpel-online.md) | 1 | – |

@@ -40,7 +40,7 @@ export type BernardOptionen = {
 }
 
 /** Befehle, die als Auftrag laufen und ein Vorhaben unterbrechen. */
-type Auftragsbefehl = Exclude<Befehl, { art: 'status' | 'weiter' | 'vergessen' | 'stopp' | 'vorhaben' }>
+type Auftragsbefehl = Exclude<Befehl, { art: 'status' | 'weiter' | 'vergessen' | 'stopp' | 'vorhaben' | 'bauen' }>
 
 const TASTEN = ['forward', 'back', 'left', 'right', 'jump', 'sprint', 'sneak'] as const
 const KI_DENKPAUSE_MS = 3000
@@ -202,6 +202,8 @@ export function starteBernard(optionen: BernardOptionen): Bot {
   /** Verteilt einen erkannten Befehl (vom Schnellweg oder von der KI). */
   const behandle = (befehl: Befehl, nachricht: Nachricht) => {
     switch (befehl.art) {
+      case 'bauen': // unterbricht nichts, Bernard kann es noch nicht
+        return antworte(bot, nachricht, texte(spracheFuer(nachricht)).bauenNochNicht)
       case 'status': // unterbricht nichts
         return antworte(bot, nachricht, vorhaben ? vorhaben.beschreibe() : 'Ich hab gerade nichts vor.')
       case 'weiter':

@@ -20,6 +20,14 @@ _Avoid_: Freund, Owner, Master, Besitzer, erlaubter Spieler
 Eine Anweisung eines Kumpels an Bernard im Ingame-Chat, die mit „Bernard“ beginnt oder ihm privat geschickt wird. Ein neuer Befehl ersetzt den laufenden sofort.
 _Avoid_: Kommando, Prompt, Auftrag
 
+**Craften**:
+Einen Gegenstand (Werkzeug, Werkbank, Ofen, Bretter …) aus Material herstellen, im Inventar oder an der Werkbank. Das Ergebnis landet in Bernards Inventar. Im Chat: „mach“, „crafte“, „stell … her“ und auch „bau“, solange das Ding ein Gegenstand ist („bau mir eine Holzspitzhacke“).
+_Avoid_: Herstellen (als Begriff), Bauen (für Gegenstände)
+
+**Bauen**:
+Blöcke in die Welt setzen, sodass ein Bauwerk entsteht („bau eine Hütte“). Das Ergebnis steht in der Welt, nicht im Inventar. Kann Bernard noch nicht; auf „bau“ mit etwas, das kein Gegenstand ist, antwortet er „Bauen kann ich noch nicht.“
+_Avoid_: Craften (für Bauwerke), Konstruieren, Errichten
+
 **Geschützter Bereich**:
 Ein von Kumpeln festgelegtes Gebiet der Welt, in dem Bernard keine Blöcke abbaut.
 _Avoid_: Zone, Claim, Sperrgebiet

@@ -10,6 +10,8 @@ export type Befehl =
   /** ding null = alles; menge 'alle' = alles von diesem Ding */
   | { art: 'geben'; ding: DingSchluessel | null; menge: number | 'alle' }
   | { art: 'craften'; ding: DingSchluessel; menge: number }
+  /** „bau“ mit etwas, das kein Gegenstand ist („bau eine Hütte“). Kann Bernard noch nicht. */
+  | { art: 'bauen' }
   /** Ein Vorhaben starten: selbstständig bis zu dieser Stufe spielen (5: Enderdrache). */
   | { art: 'vorhaben'; zielstufe: number }
   /** Pausiertes oder unterbrochenes Vorhaben fortsetzen. */
@@ -54,10 +56,19 @@ function mengeUndDing(rest: string): { menge: number | null; ding: DingName } | 
   return ding ? { menge, ding } : null
 }
 
+/** „4 bretter“ → Craften, wenn es ein Gegenstand ist, den man herstellen kann; sonst null. */
+function gegenstandZumCraften(rest: string): Befehl | null {
+  const was = mengeUndDing(rest)
+  if (!was || !('herstellen' in DINGE[was.ding])) return null
+  return { art: 'craften', ding: was.ding, menge: was.menge ?? 1 }
+}
+
 const INVENTAR = /^(was hast du( dabei| bei dir| im inventar)?|(zeig )?(dein |mir dein )?inventar|inventory|what do you have|what('s| is) in your inventory)$/
 const GEBEN = /^(gib|give)( mir| me) (.+)$/
 const ALLES = /^(alles|everything|all deine sachen|all your stuff|all your items)$/
-const CRAFTEN = /^(mach|mache|crafte|craft|make|bau|baue|stell)( mir| me)? (.+?)( her)?$/
+const CRAFTEN = /^(mach|mache|crafte|craft|make|stell)( mir| me)? (.+?)( her)?$/
+/** „bau“ craftet nur Gegenstände; alles andere ist Bauen. */
+const BAUEN = /^(bau|baue|build)( mir| me)? (.+)$/
 
 /** Wörter für Stufen → Nummer. */
 const STUFEN_WOERTER: Record<string, number> = {
@@ -124,12 +135,10 @@ export function erkenneBefehl(text: string): Befehl | null {
     const was = mengeUndDing(geben[3])
     return was ? { art: 'geben', ding: was.ding, menge: was.menge ?? 'alle' } : null
   }
+  const bauen = normal.match(BAUEN)
+  if (bauen) return gegenstandZumCraften(bauen[3]) ?? { art: 'bauen' }
   const craften = normal.match(CRAFTEN)
-  if (craften) {
-    const was = mengeUndDing(craften[3])
-    if (!was || !('herstellen' in DINGE[was.ding])) return null
-    return { art: 'craften', ding: was.ding, menge: was.menge ?? 1 }
-  }
+  if (craften) return gegenstandZumCraften(craften[3])
   const sammeln = normal.match(SAMMELN)
   if (sammeln) {
     const material = MATERIAL_WOERTER[sammeln[4]]
