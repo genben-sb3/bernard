@@ -49,7 +49,7 @@ Erste Ausgangsmessung (2026-10-09, Stand `df0257a`, also vor Ticket 004):
 | 14:00 (nach Ticket 003) | gescheitert | – | 555 s | 1 | 0 | Steinspitzhacke, Werkbank, Steinaxt, Steinschwert, Ofen |
 | 14:00, mit Ticket 012 | Zeitlimit | – | 1800 s | 0 | 0 | alles außer Holz (9/16), nach 671 s |
 
-**Befund:** Kein Lauf erreicht die Steinzeit. Alle fünf enden mit „Ich finde keinen Platz für die Werkbank“. Bernard steht dabei in einem selbst gegrabenen Loch, und dort ist keines der acht Nachbarfelder frei (Ticket 012). Mit Ticket 012 ist dieser Abbruch weg. Dann hängt Bernard aber 19 Minuten in einer Schleife am selben „zu hohen“ Stamm, weil er in einem selbst gegrabenen Schacht steht (Ticket 014). Außerdem bricht die Wegsuche zum Stein oft ab („Took to long to decide path“, 5 bis 62 Mal pro Lauf), weil Bernard unterwegs nicht gräbt und nur an offenen Stein kommt. Drei der fünf Läufe hatten einen Tod, beide auf Stufe 0, also ohne Rückfall.
+**Befund:** Kein Lauf erreicht die Steinzeit. Alle fünf enden mit „Ich finde keinen Platz für die Werkbank“. Bernard steht dabei in einem selbst gegrabenen Loch, und dort ist keines der acht Nachbarfelder frei (Ticket 012). Mit Ticket 012 ist dieser Abbruch weg. Dann hängt Bernard aber 19 Minuten in einer Schleife am selben „zu hohen“ Stamm, weil er in einem selbst gegrabenen Schacht steht (Ticket 014). Außerdem bricht die Wegsuche zum Stein oft ab („Took to long to decide path“, 5 bis 62 Mal pro Lauf), weil Bernard unterwegs nicht gräbt und nur an offenen Stein kommt. Drei der fünf Läufe hatten einen Tod, alle auf Stufe 0, also ohne Rückfall.
 
 ## Neues Szenario
 
