@@ -49,7 +49,7 @@ export async function crafte(bot: Bot, ding: DingName, menge: number, abbruch: A
       }
       const ergebnisId = schritt.rezept.result.id
       const erwartet = anzahlVon(bot, ergebnisId) + schritt.mal * schritt.rezept.result.count
-      // Der Server ignoriert Inventar-Klicks manchmal stillschweigend (siehe sim/LIESMICH.md): dann einmal neu versuchen
+      // Ignoriert der Server Klicks (veralteter Zähler, siehe sim/LIESMICH.md), fehlt das Ergebnis: dann einmal neu versuchen
       for (let versuch = 1; anzahlVon(bot, ergebnisId) < erwartet; versuch++) {
         if (versuch > 2) throw new Error(`${bot.registry.items[ergebnisId].name} kam nach zwei Versuchen nicht im Inventar an`)
         if (versuch > 1) protokoll(`Craften: ${bot.registry.items[ergebnisId].name} kam nicht an, neuer Versuch`)
