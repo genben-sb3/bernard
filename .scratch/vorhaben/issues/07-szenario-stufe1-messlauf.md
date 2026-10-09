@@ -6,11 +6,13 @@ Das Ergebnis ist die **Ausgangsmessung**: Zeit bis Stufe 1, Tode und Rückfälle
 
 **Blocked by:** 02 (Testwelt), 04 (Unterbrechen, pausieren, Status), 05 (Weiterziehen und Fehlschläge), 06 (Tod und Rückfall)
 
-**Status:** ready-for-agent
+**Status:** erledigt
 
-- [ ] Das Szenario „stufe1“ läuft in der Weltart aus Ticket 02 mit festem Seed
-- [ ] Der Laufbericht enthält den Start, jedes erreichte Ding aus dem Soll-Inventar, Stufenwechsel, Tode und Rückfälle sowie das Ende mit Grund
-- [ ] Bei Erfolg: „Steinzeit geschafft“ im Chat, und das Soll-Inventar liegt per Server-Befehl geprüft vor
-- [ ] „was machst du?“ während des Laufs liefert eine sinnvolle Antwort
-- [ ] Eine Unterbrechung durch „komm her“ endet mit der Ansage beim Weitermachen. „stopp“ pausiert, „mach weiter“ setzt fort.
-- [ ] Die Ergebnisse von mindestens drei Läufen (Zeit bis Stufe 1, Tode, Rückfälle, Ende) sind als erste Ausgangsmessung in der Simulations-Doku oder im Ergebnisordner festgehalten
+- [x] Das Szenario „stufe1“ läuft in der Weltart aus Ticket 02 mit festem Seed
+- [x] Der Laufbericht enthält den Start, jedes erreichte Ding aus dem Soll-Inventar, Stufenwechsel, Tode und Rückfälle sowie das Ende mit Grund
+- [x] Bei Erfolg: „Steinzeit geschafft“ im Chat, und das Soll-Inventar liegt per Server-Befehl geprüft vor
+- [x] „was machst du?“ während des Laufs liefert eine sinnvolle Antwort
+- [x] Eine Unterbrechung durch „komm her“ endet mit der Ansage beim Weitermachen. „stopp“ pausiert, „mach weiter“ setzt fort.
+- [x] Die Ergebnisse von mindestens drei Läufen (Zeit bis Stufe 1, Tode, Rückfälle, Ende) sind als erste Ausgangsmessung in der Simulations-Doku oder im Ergebnisordner festgehalten
+
+**Ergebnis (2026-10-09):** 5 Messläufe, keiner erreicht Stufe 1. Alle enden mit „gescheitert“, weil kein Platz für die Werkbank da ist (→ Ticket 012). Die Tabelle steht in `sim/LIESMICH.md` unter „Ausgangsmessung Stufe 1“. Die Prüfungen „Steinzeit geschafft“ und „Soll-Inventar liegt vor“ laufen nur bei Erfolg und kamen deshalb noch nie dran.
