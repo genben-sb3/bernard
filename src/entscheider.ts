@@ -7,6 +7,10 @@ export type Zustand = {
   inventar: Inventar
   /** Bis zu welcher Stufe das Vorhaben geht (5: Enderdrache). */
   zielstufe: number
+  /** Ein Befehl eines Kumpels läuft gerade: Das Vorhaben wartet darunter. */
+  befehlLaeuft?: boolean
+  /** Ein Kumpel hat das Vorhaben angehalten („stopp“, „bleib“). */
+  pausiert?: boolean
 }
 
 export type Aktion =
@@ -14,8 +18,11 @@ export type Aktion =
   | { art: 'besorge'; ding: DingName; menge: number }
   /** Das Vorhaben endet: Zielstufe erreicht, oder die nächste Stufe kann Bernard noch nicht. */
   | { art: 'fertig'; grund: 'zielErreicht' | 'stufeNichtUmgesetzt'; stufe: number }
+  /** Gerade nichts tun (Befehl läuft oder pausiert). */
+  | { art: 'warten' }
 
 export function naechsterSchritt(zustand: Zustand): Aktion {
+  if (zustand.befehlLaeuft || zustand.pausiert) return { art: 'warten' }
   for (const stufe of STUFEN) {
     if (stufe.nummer > zustand.zielstufe) break
     if (stufe.soll.length === 0) return { art: 'fertig', grund: 'stufeNichtUmgesetzt', stufe: stufe.nummer - 1 }

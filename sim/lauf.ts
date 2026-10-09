@@ -12,9 +12,10 @@ import { besorgen } from './szenarien/besorgen'
 import { werkzeug } from './szenarien/werkzeug'
 import { vorhaben } from './szenarien/vorhaben'
 import { zeitlimit } from './szenarien/zeitlimit'
+import { unterbrechen } from './szenarien/unterbrechen'
 import { Testspieler, warte } from './testspieler'
 
-const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, vorhaben, zeitlimit }
+const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, vorhaben, zeitlimit, unterbrechen }
 
 const VERBINDUNG = { host: 'localhost', port: 25565, version: '26.1' }
 const BODEN = -60

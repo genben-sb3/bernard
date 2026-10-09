@@ -36,4 +36,17 @@ describe('naechsterSchritt', () => {
   it('arbeitet auch bei hoher Zielstufe zuerst die Steinzeit ab', () => {
     expect(naechsterSchritt({ inventar: {}, zielstufe: 5 })).toEqual({ art: 'besorge', ding: 'steinspitzhacke', menge: 1 })
   })
+
+  it('wartet, solange ein Befehl läuft', () => {
+    expect(naechsterSchritt({ inventar: {}, zielstufe: 1, befehlLaeuft: true })).toEqual({ art: 'warten' })
+  })
+
+  it('wartet, solange das Vorhaben pausiert ist', () => {
+    expect(naechsterSchritt({ inventar: {}, zielstufe: 1, pausiert: true })).toEqual({ art: 'warten' })
+  })
+
+  it('macht weiter, wenn kein Befehl läuft und nichts pausiert ist', () => {
+    expect(naechsterSchritt({ inventar: {}, zielstufe: 1, befehlLaeuft: false, pausiert: false }))
+      .toEqual({ art: 'besorge', ding: 'steinspitzhacke', menge: 1 })
+  })
 })

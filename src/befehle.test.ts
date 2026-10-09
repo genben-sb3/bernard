@@ -132,3 +132,30 @@ describe('erkenneBefehl – Vorhaben', () => {
     expect(erkenneBefehl(text)).toBeNull()
   })
 })
+
+describe('erkenneBefehl – Vorhaben steuern', () => {
+  it.each([
+    ['mach weiter', 'weiter'],
+    ['Mach mit dem Vorhaben weiter!', 'weiter'],
+    ['weiter', 'weiter'],
+    ['continue', 'weiter'],
+    ['keep going', 'weiter'],
+    ['vergiss das Vorhaben', 'vergessen'],
+    ['vergiss es', 'vergessen'],
+    ['hör auf mit dem Vorhaben', 'vergessen'],
+    ['forget the plan', 'vergessen'],
+    ['was machst du?', 'status'],
+    ['was tust du gerade', 'status'],
+    ['wie weit bist du?', 'status'],
+    ['what are you doing?', 'status'],
+    ['how far are you', 'status'],
+    ['stopp', 'stopp'],
+    ['bleib', 'stopp'],
+  ])('%s → %s', (text, art) => {
+    expect(erkenneBefehl(text)?.art).toBe(art)
+  })
+
+  it.each(['mach weiter so', 'vergiss den zombie', 'was machst du mit dem holz'])('kennt „%s“ nicht', text => {
+    expect(erkenneBefehl(text)).toBeNull()
+  })
+})

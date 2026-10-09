@@ -12,6 +12,12 @@ export type Befehl =
   | { art: 'craften'; ding: DingName; menge: number }
   /** Ein Vorhaben starten: selbstständig bis zu dieser Stufe spielen (5: Enderdrache). */
   | { art: 'vorhaben'; zielstufe: number }
+  /** Pausiertes oder unterbrochenes Vorhaben fortsetzen. */
+  | { art: 'weiter' }
+  /** Das Vorhaben ganz beenden. */
+  | { art: 'vergessen' }
+  /** Fragen, was Bernard gerade tut und wie weit er ist. */
+  | { art: 'status' }
 
 export type Material = 'holz' | 'eichenholz' | 'birkenholz' | 'fichtenholz' | 'stein' | 'erde' | 'sand'
 
@@ -77,6 +83,9 @@ export type Nachricht = {
 }
 
 const MUSTER: Array<[RegExp, Befehl]> = [
+  [/^(mach( mit dem vorhaben)? weiter|weiter|continue|keep going|go on|resume)$/, { art: 'weiter' }],
+  [/^(vergiss (das vorhaben|es)|hör auf mit dem vorhaben|hoer auf mit dem vorhaben|forget (the plan|it))$/, { art: 'vergessen' }],
+  [/^(was (machst|tust) du( gerade| da)?|wie weit bist du|what are you doing|how far are you( along)?|status)$/, { art: 'status' }],
   [/^(folge?|folg) mir$|^follow me$/, { art: 'folgen' }],
   [/^(stopp?|halt|bleib( hier| stehen)?|stay)$/, { art: 'stopp' }],
   [/^(komm( her| zu mir)?|come( here)?)$/, { art: 'kommHer' }],
@@ -95,6 +104,10 @@ export function anBernard(nachricht: Nachricht, name = 'Bernard'): string | null
 /** Erkennt einen Befehl im Text (ohne Anrede). Liefert null, wenn der Schnellweg ihn nicht kennt. */
 export function erkenneBefehl(text: string): Befehl | null {
   const normal = text.toLowerCase().replace(/[.!?]+$/, '').replace(/\s+/g, ' ').trim()
+  // Feste Sätze zuerst: „mach weiter“ ist kein Craften
+  for (const [muster, befehl] of MUSTER) {
+    if (muster.test(normal)) return befehl
+  }
   if (INVENTAR.test(normal)) return { art: 'inventar' }
   if (SPIELENDE.test(normal)) return { art: 'vorhaben', zielstufe: 5 }
   const spielBis = normal.match(SPIEL_BIS)
@@ -120,9 +133,6 @@ export function erkenneBefehl(text: string): Befehl | null {
     if (!material) return null
     const menge = sammeln[3] ? Number(sammeln[3]) : STANDARDMENGE
     return { art: 'sammeln', menge, material, mengeGeraten: !sammeln[3] }
-  }
-  for (const [muster, befehl] of MUSTER) {
-    if (muster.test(normal)) return befehl
   }
   return null
 }
