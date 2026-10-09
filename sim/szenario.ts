@@ -14,16 +14,21 @@ export type Kontext = {
   spieler: Record<string, Testspieler>
 }
 
+/** flach: flache, friedliche Welt des Testservers (Standard). normal: frisch generierte Welt mit festem Seed, Schwierigkeit „normal“ (sim/normalwelt.ts). */
+export type Weltart = 'flach' | 'normal'
+
 export type Szenario = {
   name: string
   beschreibung: string
+  /** In welcher Welt das Szenario läuft (Standard: flach). */
+  welt?: Weltart
   /** Testspieler, die außer Bernard und dem Beobachter mitspielen. */
   spieler: string[]
   /** Kumpel, auf die Bernard in diesem Szenario hört. */
   kumpel: string[]
   /** Server-Befehle, die die Testumgebung bauen (läuft vor dem Beitritt der Bots fertig). */
   aufbau: string[]
-  /** Startpositionen (x, z) nach dem Aufbau. */
+  /** Startpositionen (x, z) nach dem Aufbau. Nur in der flachen Welt; in der normalen starten alle am Spawn. */
   start: Record<string, [number, number]>
   /** Optional: Zeitlimit für Vorhaben in diesem Szenario (Millisekunden Echtzeit). */
   zeitlimitMs?: number

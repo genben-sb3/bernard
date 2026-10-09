@@ -23,7 +23,18 @@ const FARBEN: Record<string, string> = {
   spruce_leaves: '#3d5e3d',
   short_grass: '#6a9f3e',
   bedrock: '#333333',
+  gravel: '#8f8580',
+  sandstone: '#d4c58c',
+  granite: '#9a6b58',
+  diorite: '#bdbdbd',
+  andesite: '#868686',
+  snow: '#f2f5f7',
+  ice: '#9cc0f5',
+  clay: '#a1a6b3',
+  mud: '#3c3837',
 }
+// Für Holz- und Blattarten, die nicht einzeln oben stehen
+const FARBEN_NACH_ENDUNG: [string, string][] = [['_log', '#6b5131'], ['_leaves', '#3c7a2a'], ['_planks', '#a88754']]
 const UNBEKANNT = '#c76bc7'
 
 export const SPIELERFARBEN: Record<string, string> = {
@@ -51,20 +62,24 @@ export function zeichneKarte(optionen: {
   const canvas = createCanvas(breite, hoehe + kopf)
   const g = canvas.getContext('2d')
 
-  // Blöcke: jeweils der oberste nicht-leere Block der Säule; höhere Blöcke heller
+  // Blöcke: jeweils der oberste nicht-leere Block der Säule; Blöcke über dem tiefsten Boden heller
+  const ganzOben = Math.max(-50, ...optionen.proben.flatMap(p => Object.values(p.positionen).map(pos => Math.ceil(pos.y) + 20)))
+  const saeulen: { x: number; z: number; oben: ReturnType<typeof obersterBlock> }[] = []
   for (let x = bereich.minX; x <= bereich.maxX; x++) {
-    for (let z = bereich.minZ; z <= bereich.maxZ; z++) {
-      const oben = obersterBlock(optionen.welt, x, z)
-      const px = (x - bereich.minX) * PIXEL_PRO_BLOCK
-      const pz = (z - bereich.minZ) * PIXEL_PRO_BLOCK + kopf
-      g.fillStyle = oben ? (FARBEN[oben.name] ?? UNBEKANNT) : '#000000'
+    for (let z = bereich.minZ; z <= bereich.maxZ; z++) saeulen.push({ x, z, oben: obersterBlock(optionen.welt, x, z, ganzOben) })
+  }
+  const hoehen = saeulen.flatMap(s => (s.oben ? [s.oben.y] : []))
+  const boden = hoehen.length ? Math.min(...hoehen) : -61
+  for (const { x, z, oben } of saeulen) {
+    const px = (x - bereich.minX) * PIXEL_PRO_BLOCK
+    const pz = (z - bereich.minZ) * PIXEL_PRO_BLOCK + kopf
+    g.fillStyle = oben ? farbe(oben.name) : '#000000'
+    g.fillRect(px, pz, PIXEL_PRO_BLOCK, PIXEL_PRO_BLOCK)
+    if (oben && oben.y > boden) {
+      g.fillStyle = `rgba(255,255,255,${Math.min(0.15 * (oben.y - boden), 0.45)})`
       g.fillRect(px, pz, PIXEL_PRO_BLOCK, PIXEL_PRO_BLOCK)
-      if (oben && oben.y > -61) {
-        g.fillStyle = `rgba(255,255,255,${Math.min(0.15 * (oben.y + 61), 0.45)})`
-        g.fillRect(px, pz, PIXEL_PRO_BLOCK, PIXEL_PRO_BLOCK)
-        g.strokeStyle = 'rgba(0,0,0,0.35)'
-        g.strokeRect(px + 0.5, pz + 0.5, PIXEL_PRO_BLOCK - 1, PIXEL_PRO_BLOCK - 1)
-      }
+      g.strokeStyle = 'rgba(0,0,0,0.35)'
+      g.strokeRect(px + 0.5, pz + 0.5, PIXEL_PRO_BLOCK - 1, PIXEL_PRO_BLOCK - 1)
     }
   }
 
@@ -155,8 +170,12 @@ export function zeichneKarte(optionen: {
   writeFileSync(optionen.datei, canvas.toBuffer('image/png'))
 }
 
-function obersterBlock(welt: Bot, x: number, z: number) {
-  for (let y = -50; y >= -64; y--) {
+function farbe(block: string) {
+  return FARBEN[block] ?? FARBEN_NACH_ENDUNG.find(([endung]) => block.endsWith(endung))?.[1] ?? UNBEKANNT
+}
+
+function obersterBlock(welt: Bot, x: number, z: number, ganzOben: number) {
+  for (let y = ganzOben; y >= -64; y--) {
     const block = welt.blockAt(new Vec3(x, y, z))
     if (block && block.name !== 'air' && block.name !== 'cave_air' && block.name !== 'void_air') {
       return { name: block.name, y }

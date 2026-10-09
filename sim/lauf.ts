@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { Rcon } from 'rcon-client'
 import { starteBernard } from '../src/bernard'
 import { Beobachter } from './beobachter'
+import { PORT as NORMAL_PORT, RCON_PASSWORT as NORMAL_RCON_PASSWORT, RCON_PORT as NORMAL_RCON_PORT, starteNormalwelt } from './normalwelt'
 import type { Szenario } from './szenario'
 import { folgen } from './szenarien/folgen'
 import { sammeln } from './szenarien/sammeln'
@@ -13,11 +14,11 @@ import { werkzeug } from './szenarien/werkzeug'
 import { vorhaben } from './szenarien/vorhaben'
 import { zeitlimit } from './szenarien/zeitlimit'
 import { unterbrechen } from './szenarien/unterbrechen'
+import { normalwelt } from './szenarien/normalwelt'
 import { Testspieler, warte } from './testspieler'
 
-const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, vorhaben, zeitlimit, unterbrechen }
+const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, vorhaben, zeitlimit, unterbrechen, normalwelt }
 
-const VERBINDUNG = { host: 'localhost', port: 25565, version: '26.1' }
 const BODEN = -60
 
 const name = process.argv[2]
@@ -26,11 +27,17 @@ if (!szenario) {
   console.error(`Unbekanntes Szenario „${name ?? ''}“. Vorhanden: ${Object.keys(SZENARIEN).join(', ')}`)
   process.exit(2)
 }
+const normal = szenario.welt === 'normal'
+const VERBINDUNG = { host: 'localhost', port: normal ? NORMAL_PORT : 25565, version: '26.1' }
 
 const zeitstempel = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
 const ordner = join('sim', 'ergebnisse', `${zeitstempel}-${szenario.name}`)
 
-const rcon = await Rcon.connect({ host: 'localhost', port: 25575, password: rconPasswort() })
+if (normal) console.log('Starte die Normalwelt frisch …')
+const normalServer = normal ? await starteNormalwelt() : undefined
+const rcon = normal
+  ? await Rcon.connect({ host: 'localhost', port: NORMAL_RCON_PORT, password: NORMAL_RCON_PASSWORT })
+  : await Rcon.connect({ host: 'localhost', port: 25575, password: rconPasswort() })
 const befehl = async (b: string) => {
   const antwort = await rcon.send(b)
   if (/unknown|incorrect|error|expected|too many|not loaded|no player|could not|failed|invalid/i.test(antwort)) throw new Error(`Server-Befehl „${b}“ fehlgeschlagen: ${antwort}`)
@@ -46,7 +53,7 @@ try {
   await befehl('gamemode spectator Beobachter')
   await befehl('time set day')
   await befehl('weather clear')
-  await leereArena()
+  if (!normal) await leereArena()
   for (const b of szenario.aufbau) await befehl(b)
 
   const bernard = starteBernard({ ...VERBINDUNG, name: 'Bernard', kumpel: szenario.kumpel,
@@ -62,9 +69,15 @@ try {
     ...Object.values(spieler).map(s => s.bereit()),
   ])
 
-  for (const [wer, [x, z]] of Object.entries(szenario.start)) {
-    const hoehe = wer === 'Beobachter' ? BODEN + 30 : BODEN
-    await befehl(`tp ${wer} ${x + 0.5} ${hoehe} ${z + 0.5} 0 ${wer === 'Beobachter' ? 90 : 0}`)
+  if (normal) {
+    // Alle stehen am Spawn; der Beobachter schwebt darüber
+    await befehl('tp Beobachter Bernard')
+    await befehl('execute as Beobachter at @s run tp @s ~ ~30 ~ 0 90')
+  } else {
+    for (const [wer, [x, z]] of Object.entries(szenario.start)) {
+      const hoehe = wer === 'Beobachter' ? BODEN + 30 : BODEN
+      await befehl(`tp ${wer} ${x + 0.5} ${hoehe} ${z + 0.5} 0 ${wer === 'Beobachter' ? 90 : 0}`)
+    }
   }
   for (const n of ['Bernard', ...szenario.spieler]) {
     await befehl(`gamemode survival ${n}`)
@@ -87,6 +100,7 @@ try {
 const bericht = beobachter.beende({ szenario: szenario.name, beschreibung: szenario.beschreibung, abbruch })
 for (const bot of bots.slice(1)) bot.quit()
 await rcon.end()
+await normalServer?.stoppe()
 
 console.log(`${bericht.bestanden ? 'BESTANDEN' : 'NICHT BESTANDEN'}: ${szenario.name}`)
 for (const p of bericht.pruefungen) console.log(`  ${p.bestanden ? '✓' : '✗'} ${p.name} — ${p.details}`)
