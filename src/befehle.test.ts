@@ -1,0 +1,44 @@
+import { describe, expect, it } from 'vitest'
+import { anBernard, erkenneBefehl, istKumpel } from './befehle'
+
+describe('anBernard', () => {
+  it('erkennt die Anrede mit Namen im öffentlichen Chat', () => {
+    expect(anBernard({ absender: 'Ben', text: 'Bernard, folge mir', privat: false })).toBe('folge mir')
+    expect(anBernard({ absender: 'Ben', text: 'bernard: stopp', privat: false })).toBe('stopp')
+    expect(anBernard({ absender: 'Ben', text: 'hey Bernard komm her', privat: false })).toBe('komm her')
+  })
+
+  it('ignoriert öffentliche Nachrichten ohne Anrede', () => {
+    expect(anBernard({ absender: 'Ben', text: 'folge mir', privat: false })).toBeNull()
+    expect(anBernard({ absender: 'Ben', text: 'Bernardo, folge mir', privat: false })).toBeNull()
+  })
+
+  it('nimmt private Nachrichten ohne Anrede an', () => {
+    expect(anBernard({ absender: 'Ben', text: ' folge mir ', privat: true })).toBe('folge mir')
+  })
+})
+
+describe('erkenneBefehl', () => {
+  it.each([
+    ['folge mir', 'folgen'],
+    ['Folg mir!', 'folgen'],
+    ['follow me', 'folgen'],
+    ['stopp', 'stopp'],
+    ['Bleib hier.', 'stopp'],
+    ['komm her', 'kommHer'],
+    ['come here', 'kommHer'],
+  ])('%s → %s', (text, art) => {
+    expect(erkenneBefehl(text)?.art).toBe(art)
+  })
+
+  it('kennt freie Sätze nicht (die gehen später an die KI)', () => {
+    expect(erkenneBefehl('hol mir bitte 10 Holz')).toBeNull()
+  })
+})
+
+describe('istKumpel', () => {
+  it('vergleicht Namen ohne Groß-/Kleinschreibung', () => {
+    expect(istKumpel('ben', ['Ben'])).toBe(true)
+    expect(istKumpel('Fremder', ['Ben'])).toBe(false)
+  })
+})

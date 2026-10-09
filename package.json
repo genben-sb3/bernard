@@ -1,0 +1,35 @@
+{
+  "name": "bernard",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p .",
+    "bernard": "tsx src/start.ts",
+    "sim": "tsx sim/lauf.ts",
+    "postinstall": "patch-package"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "@types/node": "^26.6.4",
+    "canvas": "^3.2.3",
+    "mineflayer": "^4.39.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "rcon-client": "^4.2.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vec3": "^0.2.0",
+    "vitest": "^5.0.3"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1"
+  }
+}

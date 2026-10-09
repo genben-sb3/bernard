@@ -1,0 +1,6 @@
+node_modules/
+.tools/
+server/
+server.log
+sim/ergebnisse/
+dist/

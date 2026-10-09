@@ -1,0 +1,54 @@
+diff --git a/node_modules/prismarine-physics/index.js b/node_modules/prismarine-physics/index.js
+index d95ce7f..28fd0d7 100644
+--- a/node_modules/prismarine-physics/index.js
++++ b/node_modules/prismarine-physics/index.js
+@@ -154,6 +154,8 @@ function Physics (mcData, world) {
+     pos.y += dy
+   }
+ 
++  const WAND_ABSTAND = 0.001
++
+   function moveEntity (entity, world, dx, dy, dz) {
+     const vel = entity.vel
+     const pos = entity.pos
+@@ -202,6 +204,20 @@ function Physics (mcData, world) {
+       }
+     }
+ 
++    // Liegt der Spieler schon bündig an einer Wand an (z. B. nach einem Teleport), erst ein Stück wegrücken
++    const bb0 = getPlayerBB(pos)
++    const nahBB = new AABB(bb0.minX - WAND_ABSTAND, bb0.minY, bb0.minZ - WAND_ABSTAND,
++      bb0.maxX + WAND_ABSTAND, bb0.maxY, bb0.maxZ + WAND_ABSTAND)
++    for (const blockBB of getSurroundingBBs(world, nahBB)) {
++      if (blockBB.maxY <= bb0.minY || blockBB.minY >= bb0.maxY) continue
++      const ueberlapptZ = blockBB.maxZ > bb0.minZ && blockBB.minZ < bb0.maxZ
++      const ueberlapptX = blockBB.maxX > bb0.minX && blockBB.minX < bb0.maxX
++      if (ueberlapptZ && Math.abs(blockBB.maxX - bb0.minX) < 1e-7) pos.x += WAND_ABSTAND
++      if (ueberlapptZ && Math.abs(blockBB.minX - bb0.maxX) < 1e-7) pos.x -= WAND_ABSTAND
++      if (ueberlapptX && Math.abs(blockBB.maxZ - bb0.minZ) < 1e-7) pos.z += WAND_ABSTAND
++      if (ueberlapptX && Math.abs(blockBB.minZ - bb0.maxZ) < 1e-7) pos.z -= WAND_ABSTAND
++    }
++
+     let playerBB = getPlayerBB(pos)
+     const queryBB = playerBB.clone().extend(dx, dy, dz)
+     const surroundingBBs = getSurroundingBBs(world, queryBB)
+@@ -294,6 +310,19 @@ function Physics (mcData, world) {
+       }
+     }
+ 
++    // Nicht bündig an Wänden anliegen: Server ab Minecraft 26.1 werten exaktes Anliegen
++    // als Kollision und setzen den Spieler bei jedem Schritt zurück. Ein winziger Abstand ist immer erlaubt.
++    if (dx !== oldVelX && oldVelX !== 0) {
++      const zurueck = -Math.sign(oldVelX) * WAND_ABSTAND
++      dx += zurueck
++      playerBB.offset(zurueck, 0, 0)
++    }
++    if (dz !== oldVelZ && oldVelZ !== 0) {
++      const zurueck = -Math.sign(oldVelZ) * WAND_ABSTAND
++      dz += zurueck
++      playerBB.offset(0, 0, zurueck)
++    }
++
+     // Update flags
+     setPositionToBB(playerBB, pos)
+     entity.isCollidedHorizontally = dx !== oldVelX || dz !== oldVelZ

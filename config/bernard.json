@@ -1,0 +1,7 @@
+{
+  "host": "localhost",
+  "port": 25565,
+  "version": "26.1",
+  "name": "Bernard",
+  "kumpel": ["Ben"]
+}
