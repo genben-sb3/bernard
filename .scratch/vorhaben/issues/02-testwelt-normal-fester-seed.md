@@ -6,11 +6,11 @@ Das Ziel sind vergleichbare Messläufe: gleicher Seed, gleicher Start, Bedingung
 
 **Blocked by:** Ticket 001 des Bernard-Trackers muss committet sein, weil die andere Session gerade an derselben Stelle der Simulation arbeitet. Fachlich gibt es keine Blocker, das Ticket kann parallel zu 01 laufen.
 
-**Status:** ready-for-agent
+**Status:** erledigt
 
-- [ ] Ein Szenario kann die Weltart „normal mit festem Seed“ wählen, Standard bleibt flach und friedlich
-- [ ] Jeder Lauf mit der neuen Weltart beginnt in einer frisch erzeugten Welt, Reste früherer Läufe sind weg
-- [ ] Die Schwierigkeit ist „normal“, und Monster spawnen
-- [ ] Mini-Szenario: Bernard betritt die frische Welt am erwarteten Spawn, und vom Spawn aus ist ein natürlicher Baum in Reichweite
-- [ ] Alle bestehenden Szenarien laufen weiter wie bisher
-- [ ] Der gewählte Seed und wie man ihn ändert, ist in der Simulations-Doku (LIESMICH) beschrieben
+- [x] Ein Szenario kann die Weltart „normal mit festem Seed“ wählen, Standard bleibt flach und friedlich
+- [x] Jeder Lauf mit der neuen Weltart beginnt in einer frisch erzeugten Welt, Reste früherer Läufe sind weg
+- [x] Die Schwierigkeit ist „normal“, und Monster spawnen
+- [x] Mini-Szenario: Bernard betritt die frische Welt am erwarteten Spawn, und vom Spawn aus ist ein natürlicher Baum in Reichweite
+- [x] Alle bestehenden Szenarien laufen weiter wie bisher
+- [x] Der gewählte Seed und wie man ihn ändert, ist in der Simulations-Doku (LIESMICH) beschrieben

@@ -62,22 +62,30 @@ export async function crafte(bot: Bot, ding: DingSchluessel, menge: number, abbr
   return { art: 'fertig', anzahl: zaehle() - vorher }
 }
 
-/** Ein Rezept einmal craften. Klappt es nicht, nach einer Pause mit frischem Inventar ein zweites Mal. */
+/**
+ * Ein Rezept einmal craften. Fehlen die Zutaten in Bernards Sicht noch („missing ingredient“) oder ignoriert
+ * der Server den Klick (veralteter Zähler, siehe sim/LIESMICH.md) und das Ergebnis kommt nicht an,
+ * nach einer Pause ein zweites Mal.
+ */
 async function crafteEinmal(bot: Bot, rezept: Recipe, werkbank: Block | undefined, protokoll: (text: string) => void) {
   const ergebnisId = rezept.result.id
+  const name = bot.registry.items[ergebnisId].name
   const erwartet = anzahlVon(bot, ergebnisId) + rezept.result.count
   for (let versuch = 1; ; versuch++) {
     await warteAufInventarRuhe(bot)
     try {
       await bot.craft(rezept, 1, werkbank)
-      break
     } catch (fehler) {
       if (versuch >= 2 || !/missing ingredient/.test(String(fehler))) throw fehler
-      protokoll(`Craften: ${bot.registry.items[ergebnisId].name} – Zutaten noch nicht da, neuer Versuch`)
+      protokoll(`Craften: ${name} – Zutaten noch nicht da, neuer Versuch`)
       await new Promise(r => setTimeout(r, 1000))
+      continue
     }
+    await warteBisImInventar(bot, ergebnisId, erwartet)
+    if (anzahlVon(bot, ergebnisId) >= erwartet) return
+    if (versuch >= 2) throw new Error(`${name} kam nach zwei Versuchen nicht im Inventar an`)
+    protokoll(`Craften: ${name} kam nicht an, neuer Versuch`)
   }
-  await warteBisImInventar(bot, ergebnisId, erwartet)
 }
 
 function anzahlVon(bot: Bot, id: number) {

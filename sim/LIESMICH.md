@@ -15,12 +15,24 @@ Testet Bernard auf einem lokalen Testserver, ohne dass ein Mensch mitspielen mus
 
 ```sh
 cd server && ../.tools/java/bin/java -Xmx2G -jar paper.jar --nogui   # Server starten
-npm run sim -- folgen                                                # Szenario laufen lassen (folgen, sammeln, werkzeug, besorgen, ki, englisch)
+npm run sim -- folgen                                                # Szenario laufen lassen (folgen, sammeln, werkzeug, besorgen, ki, englisch, vorhaben, zeitlimit, unterbrechen, weiterziehen, normalwelt)
 npx tsx sim/diagnose-wand.ts                                          # Wand-Diagnose: überall 0 Server-Korrekturen erwartet
 npx tsx sim/diagnose-werfen.ts                                        # Werfen/Craften: Server- und Bernard-Sicht aufs Inventar vergleichen
+npx tsx sim/diagnose-craften.ts 10                                    # Holzspitzhacke 10× craften, Paketspur bei Fehlschlag
 npx tsx sim/diagnose-ki.ts [url] [modell]                            # echtes KI-Modell: zehn Sätze, Ergebnis und Antwortzeit
 node sim/rcon-befehl.mjs "list"                                      # beliebige Server-Befehle
 ```
+
+## Weltarten
+
+Jedes Szenario legt mit `welt` fest, wo es läuft:
+
+- **`flach`** (Standard): die flache, friedliche Welt des Testservers in `server/`. Vor jedem Lauf wird die Testfläche geräumt, die Bots werden auf `start` gesetzt.
+- **`normal`**: eine normal generierte Welt mit festem Seed auf Schwierigkeit „normal“, Monster spawnen. `npm run sim` startet dafür selbst einen zweiten Server in `server-normal/` (Port 25566, RCON 25576), löscht vorher die alte Welt und stoppt ihn nach dem Lauf. Jeder Lauf beginnt also in einer frisch erzeugten Welt. Der flache Server muss dafür nicht laufen, darf es aber. Der Start dauert etwa 25 s. Alle Bots betreten die Welt genau am Weltspawn (`respawn_radius 0`), `start` gilt hier nicht, der Beobachter schwebt 30 Blöcke darüber.
+
+**Seed:** `42`, Spawn bei x −32, y 71, z 0 auf Gras. Der nächste Baum (Schwarzeiche) ist 5,5 Blöcke entfernt, offener Stein etwa 10 Blöcke. Das Szenario `normalwelt` prüft das.
+
+**Seed ändern:** `SEED` und `SPAWN` in `sim/normalwelt.ts` anpassen und `npm run sim -- normalwelt` laufen lassen. Den Spawn des neuen Seeds nennt die fehlgeschlagene Prüfung „am erwarteten Spawn“. Ein neuer Seed taugt, wenn auch Baum und Monster bestanden sind und Stein in der Nähe offen liegt. Alle Messläufe mit dem alten Seed sind danach nicht mehr vergleichbar.
 
 ## Neues Szenario
 
@@ -28,6 +40,8 @@ Eine Datei in `sim/szenarien/` anlegen, die ein `Szenario` exportiert (Aufbau pe
 
 ## Bekannte Eigenheiten
 
+- **Gamerules heißen ab 26.1 anders** (snake_case): `respawn_radius`, `spawn_mobs`, `spawn_monsters` statt `spawnRadius`, `doMobSpawning`.
+- **mineflayer ist gepatcht** (`patches/`): Der Server führt den Klick-Zähler (`stateId`) pro Fenster und schickt auch bei offener Werkbank weiter Updates fürs Spieler-Inventar. mineflayer merkte sich nur einen Zähler für alle Fenster und klickte an der Werkbank oft mit dem des Inventars. Der Server ignorierte diese Klicks, und die Holzspitzhacke kam etwa jedes zweite Mal nicht an (`sim/diagnose-craften.ts`).
 - **prismarine-physics ist gepatcht** (`patches/`): Server ab 26.1 lehnen jede Bewegung ab, wenn ein Spieler exakt bündig an einer Wand anliegt. Ohne den Patch bleibt Bernard an Wänden dauerhaft hängen.
 - **GoalFollow aus mineflayer-pathfinder wird nicht verwendet**: Das Ziel misst gegen einen veralteten Punkt und hängt bis zu doppelt so weit zurück wie eingestellt. Bernard nutzt stattdessen `GoalHinterher` aus `src/ziele.ts`.
 - **Baumfällen**: Bei kleinen Eichen hängen die untersten Blätter auf Kopfhöhe neben dem Stamm. Bernard darf beim Fällen deshalb natürliche Blätter wegschlagen (nie gesetzte, `persistent=true`). Ohne das findet die Wegsuche keinen Platz am Stamm, und Drops bleiben in den zugewachsenen Ecken liegen.

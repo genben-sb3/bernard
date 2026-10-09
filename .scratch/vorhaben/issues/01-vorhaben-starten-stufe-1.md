@@ -14,18 +14,18 @@ Quelle: Spec `.scratch/bernard/issues/011-vorhaben-geruest-und-stufe-1.md`.
 
 **Blocked by:** Ticket 001 des Bernard-Trackers (`besorge`) muss fertig und committet sein. Innerhalb dieses Features gibt es keine Blocker.
 
-**Status:** ready-for-agent
+**Status:** erledigt
 
-- [ ] Unit-Tests für den Entscheider:
+- [x] Unit-Tests für den Entscheider:
   - leeres Inventar → besorge das erste Ding
   - fast vollständiges Soll-Inventar → besorge das fehlende Ding
   - vollständiges Soll-Inventar → keine Aktion, Stufe erreicht
   - eine Eisenspitzhacke erfüllt die Steinspitzhacke
   - Holzsorten zählen zusammen
-- [ ] Unit-Tests für die Stufenberechnung aus dem Inventar, mit 0 bei leerem Inventar und 1 bei vollem Soll-Inventar
-- [ ] Unit-Tests für die Befehlserkennung: alle Formulierungen zum Starten, die Zielstufen samt Enderdrache und Sätze, die nicht erkannt werden dürfen
-- [ ] Bernard bestätigt den Start im Chat und meldet „Steinzeit geschafft“
-- [ ] Bei Zielstufe über 1 meldet er nach Stufe 1, dass er weiter noch nicht kann, und das Vorhaben endet
-- [ ] Nur Kumpel können ein Vorhaben starten
-- [ ] Die Begriffe stehen in `CONTEXT.md`
-- [ ] Szenario in der flachen, friedlichen Welt mit hingesetzten Bäumen und Stein: leeres Inventar, „spiel bis zur Steinzeit“. Am Ende liegt das Soll-Inventar vor (per Server-Befehl geprüft), und es steht keine Werkbank herum.
+- [x] Unit-Tests für die Stufenberechnung aus dem Inventar, mit 0 bei leerem Inventar und 1 bei vollem Soll-Inventar
+- [x] Unit-Tests für die Befehlserkennung: alle Formulierungen zum Starten, die Zielstufen samt Enderdrache und Sätze, die nicht erkannt werden dürfen
+- [x] Bernard bestätigt den Start im Chat und meldet „Steinzeit geschafft“
+- [x] Bei Zielstufe über 1 meldet er nach Stufe 1, dass er weiter noch nicht kann, und das Vorhaben endet
+- [x] Nur Kumpel können ein Vorhaben starten
+- [x] Die Begriffe stehen in `CONTEXT.md`
+- [x] Szenario in der flachen, friedlichen Welt mit hingesetzten Bäumen und Stein: leeres Inventar, „spiel bis zur Steinzeit“. Am Ende liegt das Soll-Inventar vor (per Server-Befehl geprüft), und es steht keine Werkbank herum.

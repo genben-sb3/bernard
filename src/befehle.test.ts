@@ -126,3 +126,55 @@ describe('erkenneBefehl – Füllwörter', () => {
     expect(erkenneBefehl('gib mir doch mal 2 stöcke')).toEqual({ art: 'geben', ding: 'stoecke', menge: 2 })
   })
 })
+
+describe('erkenneBefehl – Vorhaben', () => {
+  it.each([
+    ['spiel bis zur Steinzeit', 1],
+    ['spiel bis zur eisenzeit', 2],
+    ['spiele bis zur Diamantzeit', 3],
+    ['spiel bis zum Nether', 4],
+    ['spiel bis zum End', 5],
+    ['spiel bis stufe 2', 2],
+    ['play until the stone age', 1],
+    ['play until stage 3', 3],
+    ['besieg den Enderdrachen', 5],
+    ['besiege den enderdrachen!', 5],
+    ['töte den Enderdrachen', 5],
+    ['kill the ender dragon', 5],
+    ['beat the game', 5],
+    ['spiel minecraft durch', 5],
+  ])('%s → Zielstufe %i', (text, zielstufe) => {
+    expect(erkenneBefehl(text)).toEqual({ art: 'vorhaben', zielstufe })
+  })
+
+  it.each(['spiel bis stufe 6', 'spiel bis zur bronzezeit', 'spiel mit mir', 'besieg den zombie'])('kennt „%s“ nicht', text => {
+    expect(erkenneBefehl(text)).toBeNull()
+  })
+})
+
+describe('erkenneBefehl – Vorhaben steuern', () => {
+  it.each([
+    ['mach weiter', 'weiter'],
+    ['Mach mit dem Vorhaben weiter!', 'weiter'],
+    ['weiter', 'weiter'],
+    ['continue', 'weiter'],
+    ['keep going', 'weiter'],
+    ['vergiss das Vorhaben', 'vergessen'],
+    ['vergiss es', 'vergessen'],
+    ['hör auf mit dem Vorhaben', 'vergessen'],
+    ['forget the plan', 'vergessen'],
+    ['was machst du?', 'status'],
+    ['was tust du gerade', 'status'],
+    ['wie weit bist du?', 'status'],
+    ['what are you doing?', 'status'],
+    ['how far are you', 'status'],
+    ['stopp', 'stopp'],
+    ['bleib', 'stopp'],
+  ])('%s → %s', (text, art) => {
+    expect(erkenneBefehl(text)?.art).toBe(art)
+  })
+
+  it.each(['mach weiter so', 'vergiss den zombie', 'was machst du mit dem holz'])('kennt „%s“ nicht', text => {
+    expect(erkenneBefehl(text)).toBeNull()
+  })
+})
