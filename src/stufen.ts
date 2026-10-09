@@ -9,8 +9,10 @@ export type Soll = { ding: DingName; menge: number }
 export type Stufe = {
   nummer: number
   name: string
-  /** In dieser Reihenfolge besorgt Bernard die Dinge. Leer: Stufe noch nicht umgesetzt. */
+  /** Soll-Inventar: dauerhafte Dinge, in dieser Reihenfolge besorgt. Leer: Stufe noch nicht umgesetzt. */
   soll: Soll[]
+  /** Vorrat: Verbrauchsgüter, die Bernard ab dieser Stufe bereithält. Zählen nicht zur Stufe (ADR 0002). */
+  vorrat: Soll[]
 }
 
 export const STUFEN: Stufe[] = [
@@ -23,14 +25,16 @@ export const STUFEN: Stufe[] = [
       { ding: 'steinaxt', menge: 1 },
       { ding: 'steinschwert', menge: 1 },
       { ding: 'ofen', menge: 1 },
+    ],
+    vorrat: [
       { ding: 'stein', menge: 16 },
       { ding: 'holz', menge: 16 },
     ],
   },
-  { nummer: 2, name: 'Eisenzeit', soll: [] },
-  { nummer: 3, name: 'Diamantzeit', soll: [] },
-  { nummer: 4, name: 'Nether', soll: [] },
-  { nummer: 5, name: 'End', soll: [] },
+  { nummer: 2, name: 'Eisenzeit', soll: [], vorrat: [] },
+  { nummer: 3, name: 'Diamantzeit', soll: [], vorrat: [] },
+  { nummer: 4, name: 'Nether', soll: [], vorrat: [] },
+  { nummer: 5, name: 'End', soll: [], vorrat: [] },
 ]
 
 /** Werkzeugmaterialien von schlecht nach gut. Gold baut nur so viel ab wie Holz. */
@@ -52,17 +56,22 @@ export function anzahl(inventar: Inventar, ding: DingName): number {
   return summe
 }
 
-/** Was von einer Stufe noch fehlt, in der Reihenfolge der Stufe. */
-export function fehlendes(stufe: Stufe, inventar: Inventar): Soll[] {
-  return stufe.soll
+/** Was von einer Liste (Soll-Inventar oder Vorrat) noch fehlt, in ihrer Reihenfolge. */
+export function fehlt(liste: Soll[], inventar: Inventar): Soll[] {
+  return liste
     .map(s => ({ ding: s.ding, menge: s.menge - anzahl(inventar, s.ding) }))
     .filter(s => s.menge > 0)
 }
 
+/** Was vom Soll-Inventar einer Stufe noch fehlt, in der Reihenfolge der Stufe. */
+export function fehlendes(stufe: Stufe, inventar: Inventar): Soll[] {
+  return fehlt(stufe.soll, inventar)
+}
+
 /** Die höchste Stufe, deren Soll-Inventar (und das aller Stufen davor) Bernard erfüllt. 0: noch keine. */
-export function aktuelleStufe(inventar: Inventar): number {
+export function aktuelleStufe(inventar: Inventar, stufen: Stufe[] = STUFEN): number {
   let erreicht = 0
-  for (const stufe of STUFEN) {
+  for (const stufe of stufen) {
     if (stufe.soll.length === 0 || fehlendes(stufe, inventar).length > 0) break
     erreicht = stufe.nummer
   }

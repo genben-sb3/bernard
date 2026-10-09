@@ -110,12 +110,14 @@ export const weiterziehen: Szenario = {
       const ende = await warteAufChat(beginn, /geschafft|nicht weiter|aufhören|höre|schief/i, 480000)
       b.pruefe('„mach weiter“: Bernard schafft die Steinzeit', !!ende && /steinzeit geschafft/i.test(ende.text),
         ende ? `„${ende.text}“ nach ${((ende.t - beginn) / 1000).toFixed(0)} s` : `keine Meldung in 8 min; ${meldungen(beginn)}`)
+      const fertig = await warteAufChat(beginn, /vorrat ist aufgefüllt/i, 300000)
+      b.pruefe('Danach füllt er den Vorrat auf und hört auf', !!fertig, fertig ? `„${fertig.text}“ nach ${((fertig.t - beginn) / 1000).toFixed(0)} s` : 'keine Meldung in 5 min')
       const fehlt: string[] = []
       for (const [gegenstand, soll] of SOLL) {
         const hat = await anzahl(rcon, gegenstand)
         if (hat < soll) fehlt.push(`${gegenstand} ${hat}/${soll}`)
       }
-      b.pruefe('Das Soll-Inventar der Steinzeit liegt vor', fehlt.length === 0, fehlt.length === 0 ? 'vollständig' : `fehlt: ${fehlt.join(', ')}`)
+      b.pruefe('Soll-Inventar und Vorrat der Steinzeit liegen vor', fehlt.length === 0, fehlt.length === 0 ? 'vollständig' : `fehlt: ${fehlt.join(', ')}`)
       const [bericht2 = []] = laufberichte(ordner)
       const letzter = bericht2.at(-1)
       b.pruefe('Der Laufbericht endet mit „zielErreicht“', letzter?.art === 'ende' && letzter.grund === 'zielErreicht', JSON.stringify(letzter ?? null))

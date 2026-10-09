@@ -28,7 +28,7 @@ export const vorhaben: Szenario = {
   name: 'vorhaben',
   beschreibung:
     'Bernard bekommt mit leerem Inventar das Vorhaben „spiel bis zur Steinzeit“, besorgt sich das Soll-Inventar ' +
-    '(Steinspitzhacke, Steinaxt, Steinschwert, Werkbank, Ofen, 16 Bruchstein, 16 Holz) selbst und meldet „Steinzeit geschafft“. ' +
+    '(Steinspitzhacke, Steinaxt, Steinschwert, Werkbank, Ofen) selbst und meldet „Steinzeit geschafft“, dann den Vorrat (16 Bruchstein, 16 Holz). ' +
     'Danach: „besieg den Enderdrachen“ → er sagt, dass er schon bei der Steinzeit ist, aber weiter noch nicht kann.',
   spieler: ['Ben'],
   kumpel: ['Ben'],
@@ -63,12 +63,14 @@ export const vorhaben: Szenario = {
     const ende = await warteAufChat(beginn, /geschafft|aufhören|höre|schief/i, 600000)
     b.pruefe('Bernard meldet „Steinzeit geschafft“', !!ende && /steinzeit geschafft/i.test(ende.text),
       ende ? `„${ende.text}“ nach ${((ende.t - beginn) / 1000).toFixed(0)} s` : 'keine Meldung in 10 min')
+    const fertig = await warteAufChat(beginn, /vorrat ist aufgefüllt/i, 300000)
+    b.pruefe('Danach füllt er den Vorrat auf und hört auf', !!fertig, fertig ? `„${fertig.text}“ nach ${((fertig.t - beginn) / 1000).toFixed(0)} s` : 'keine Meldung in 5 min')
     const fehlt: string[] = []
     for (const [gegenstand, soll] of SOLL) {
       const hat = await anzahl(rcon, gegenstand)
       if (hat < soll) fehlt.push(`${gegenstand} ${hat}/${soll}`)
     }
-    b.pruefe('Das Soll-Inventar der Steinzeit liegt vor', fehlt.length === 0, fehlt.length === 0 ? 'vollständig' : `fehlt: ${fehlt.join(', ')}`)
+    b.pruefe('Soll-Inventar und Vorrat der Steinzeit liegen vor', fehlt.length === 0, fehlt.length === 0 ? 'vollständig' : `fehlt: ${fehlt.join(', ')}`)
     const werkbaenke = b.bot.findBlocks({ matching: b.bot.registry.blocksByName.crafting_table.id, point: new Vec3(5, BODEN, 0), maxDistance: 48, count: 10 })
     b.pruefe('Keine Werkbank bleibt stehen', werkbaenke.length === 0, werkbaenke.length === 0 ? 'keine' : `stehen bei ${werkbaenke.join(', ')}`)
     b.notiere(`Bernards Meldungen: ${vonBernard(beginn).map(c => `„${c.text}“`).join(' ')}`)
@@ -76,7 +78,7 @@ export const vorhaben: Szenario = {
 
     const [bericht = []] = laufberichte(ordner)
     const arten = bericht.map(e => e.art === 'erfuellt' ? `erfuellt:${e.ding}` : e.art === 'ende' ? `ende:${e.grund}` : e.art)
-    const erwartet = ['start', ...['steinspitzhacke', 'werkbank', 'steinaxt', 'steinschwert', 'ofen', 'stein', 'holz'].map(d => `erfuellt:${d}`), 'stufe', 'ende:zielErreicht']
+    const erwartet = ['start', ...['steinspitzhacke', 'werkbank', 'steinaxt', 'steinschwert', 'ofen'].map(d => `erfuellt:${d}`), 'stufe', 'ende:zielErreicht']
     const fehlen = erwartet.filter(a => !arten.includes(a))
     const mitZeit = bericht.every(e => typeof e.spielzeit === 'number' && typeof e.echtzeit === 'string' && typeof e.sekunden === 'number')
     b.pruefe('Der Laufbericht ist vollständig (Start, jedes Soll-Ding, Stufenwechsel, Ende mit Grund, alles mit Zeiten)',

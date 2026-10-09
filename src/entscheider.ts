@@ -1,7 +1,7 @@
 // Der Entscheider: wählt aus Bernards Zustand den nächsten Schritt für sein Vorhaben.
 // Pur und ohne Mineflayer, damit er ohne Bot testbar ist und später durch einen KI-Plan ersetzt werden kann.
 import type { DingName } from './dinge'
-import { fehlendes, STUFEN, type Inventar } from './stufen'
+import { aktuelleStufe, anzahl, fehlendes, STUFEN, type Inventar, type Stufe } from './stufen'
 
 export type Zustand = {
   inventar: Inventar
@@ -39,23 +39,31 @@ export type Aktion =
   /** Gerade nichts tun (Befehl läuft oder pausiert). */
   | { art: 'warten' }
 
-export function naechsterSchritt(zustand: Zustand): Aktion {
+export function naechsterSchritt(zustand: Zustand, stufen: Stufe[] = STUFEN): Aktion {
   if (zustand.befehlLaeuft || zustand.pausiert) return { art: 'warten' }
   const { fehlschlag, position } = zustand
   if (fehlschlag && fehlschlag.anzahl >= MAX_FEHLSCHLAEGE) return { art: 'melden', ding: fehlschlag.ding, anzahl: fehlschlag.anzahl }
   if (fehlschlag && position && abstand(position, fehlschlag.wo) < WEITERZIEH_STRECKE / 2) {
     return { art: 'weiterziehen', ding: fehlschlag.ding, nach: weiterziehZiel(position, zustand.besucht ?? [fehlschlag.wo]) }
   }
-  for (const stufe of STUFEN) {
-    if (stufe.nummer > zustand.zielstufe) break
-    if (stufe.soll.length === 0) return { art: 'fertig', grund: 'stufeNichtUmgesetzt', stufe: stufe.nummer - 1 }
-    const fehlt = fehlendes(stufe, zustand.inventar)[0]
-    if (fehlt) {
-      const soll = stufe.soll.find(s => s.ding === fehlt.ding)!
-      return { art: 'besorge', ding: fehlt.ding, menge: soll.menge }
-    }
+  const { inventar, zielstufe } = zustand
+  const erreicht = Math.min(aktuelleStufe(inventar, stufen), zielstufe)
+  // Vorrat der erreichten Stufen: auffüllen, sobald er unter die Hälfte fällt
+  for (const stufe of stufen.slice(0, erreicht)) {
+    const knapp = stufe.vorrat.find(v => anzahl(inventar, v.ding) < v.menge / 2)
+    if (knapp) return { art: 'besorge', ding: knapp.ding, menge: knapp.menge }
   }
-  return { art: 'fertig', grund: 'zielErreicht', stufe: zustand.zielstufe }
+  if (erreicht < zielstufe) {
+    const naechste = stufen[erreicht]
+    if (naechste.soll.length === 0) return { art: 'fertig', grund: 'stufeNichtUmgesetzt', stufe: erreicht }
+    const fehlt = fehlendes(naechste, inventar)[0]
+    const soll = naechste.soll.find(s => s.ding === fehlt.ding)!
+    return { art: 'besorge', ding: fehlt.ding, menge: soll.menge }
+  }
+  // Zielstufe erreicht: deren Vorrat einmal ganz auffüllen, dann ist das Vorhaben fertig
+  const offen = stufen[zielstufe - 1].vorrat.find(v => anzahl(inventar, v.ding) < v.menge)
+  if (offen) return { art: 'besorge', ding: offen.ding, menge: offen.menge }
+  return { art: 'fertig', grund: 'zielErreicht', stufe: zielstufe }
 }
 
 /** Führt den Fehlschlag-Zähler nach einem Versuch fort. Ein Erfolg setzt ihn zurück. */

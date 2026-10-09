@@ -8,6 +8,8 @@ Das Ergebnis ist die **Ausgangsmessung**: Zeit bis Stufe 1, Tode und Rückfälle
 
 **Status:** erledigt
 
+**Hinweis (Eisenzeit-01):** Bruchstein und Holz sind seit Eisenzeit-01 Vorrat statt Soll-Inventar. Das Szenario prüft sie deshalb nur noch am Ende des Laufs, nicht mehr als „erfüllt“ im Laufbericht. Die Ausgangsmessung oben stammt noch vom alten Schnitt.
+
 - [x] Das Szenario „stufe1“ läuft in der Weltart aus Ticket 02 mit festem Seed
 - [x] Der Laufbericht enthält den Start, jedes erreichte Ding aus dem Soll-Inventar, Stufenwechsel, Tode und Rückfälle sowie das Ende mit Grund
 - [x] Bei Erfolg: „Steinzeit geschafft“ im Chat, und das Soll-Inventar liegt per Server-Befehl geprüft vor

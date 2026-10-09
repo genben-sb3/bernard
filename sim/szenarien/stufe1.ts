@@ -12,8 +12,10 @@ import { laufberichte } from './vorhaben'
 const ZEITLIMIT_MS = 30 * 60 * 1000
 const SOLL: Array<[string, string, number]> = [
   ['steinspitzhacke', 'stone_pickaxe', 1], ['werkbank', 'crafting_table', 1], ['steinaxt', 'stone_axe', 1],
-  ['steinschwert', 'stone_sword', 1], ['ofen', 'furnace', 1], ['stein', 'cobblestone', 16], ['holz', '#minecraft:logs', 16],
+  ['steinschwert', 'stone_sword', 1], ['ofen', 'furnace', 1],
 ]
+/** Zählt nicht zur Stufe und steht nicht als erfüllt im Laufbericht, liegt am Ende aber vor */
+const VORRAT: Array<[string, string, number]> = [['stein', 'cobblestone', 16], ['holz', '#minecraft:logs', 16]]
 
 async function anzahl(rcon: Rcon, gegenstand: string) {
   return Number((await rcon.send(`clear Bernard ${gegenstand} 0`)).match(/(\d+)/)?.[1] ?? 0)
@@ -136,7 +138,7 @@ export const stufe1: Szenario = {
       b.pruefe('Jeder Tod steht im Laufbericht', todeImBericht === tode, `Server: ${tode}, Laufbericht: ${todeImBericht}`)
 
       const inventar: Record<string, number> = {}
-      for (const [ding, gegenstand] of SOLL) inventar[ding] = await anzahl(rcon, gegenstand)
+      for (const [ding, gegenstand] of [...SOLL, ...VORRAT]) inventar[ding] = await anzahl(rcon, gegenstand)
       const erfuellt = new Set(bericht.filter(e => e.art === 'erfuellt').map(e => e.ding))
       const ohneEintrag = SOLL.filter(([ding, , soll]) => inventar[ding] >= soll && !erfuellt.has(ding)).map(([ding]) => ding)
       b.pruefe('Jedes vorhandene Soll-Ding steht als erfüllt im Laufbericht', ohneEintrag.length === 0,
@@ -145,8 +147,8 @@ export const stufe1: Szenario = {
       const stufenwechsel = bericht.find(e => e.art === 'stufe' && e.nach === 1)
       const geschafft = ende?.grund === 'zielErreicht'
       if (geschafft) {
-        const fehlt = SOLL.filter(([ding, , soll]) => inventar[ding] < soll).map(([ding, , soll]) => `${ding} ${inventar[ding]}/${soll}`)
-        b.pruefe('Bei Erfolg liegt das Soll-Inventar per Server-Befehl vor', fehlt.length === 0, fehlt.length ? `fehlt: ${fehlt.join(', ')}` : 'vollständig')
+        const fehlt = [...SOLL, ...VORRAT].filter(([ding, , soll]) => inventar[ding] < soll).map(([ding, , soll]) => `${ding} ${inventar[ding]}/${soll}`)
+        b.pruefe('Bei Erfolg liegen Soll-Inventar und Vorrat per Server-Befehl vor', fehlt.length === 0, fehlt.length ? `fehlt: ${fehlt.join(', ')}` : 'vollständig')
         const meldung = vonBernard(beginn).find(c => /steinzeit geschafft/i.test(c.text))
         b.pruefe('Bei Erfolg: „Steinzeit geschafft“ im Chat', !!meldung, meldungen(beginn))
         b.pruefe('Bei Erfolg steht der Stufenwechsel im Laufbericht', !!stufenwechsel, arten.join(', '))

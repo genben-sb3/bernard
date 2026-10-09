@@ -26,7 +26,7 @@ describe('Laufbericht', () => {
     expect(eintraege.map(ohneZeit)).toEqual([{ art: 'start', zielstufe: 1, stufe: 0 }])
   })
 
-  it('hält jedes Ding des Soll-Inventars fest, sobald es erfüllt ist, und nur einmal', () => {
+  it('hält jedes Ding des Soll-Inventars fest, sobald es erfüllt ist, und nur einmal (den Vorrat nicht)', () => {
     const { eintraege, laufbericht } = bericht()
     laufbericht.start(1, {})
     laufbericht.beobachte({ stone_pickaxe: 1, oak_log: 3 })
@@ -35,7 +35,6 @@ describe('Laufbericht', () => {
     expect(eintraege.slice(1).map(ohneZeit)).toEqual([
       { art: 'erfuellt', ding: 'steinspitzhacke', menge: 1 },
       { art: 'erfuellt', ding: 'werkbank', menge: 1 },
-      { art: 'erfuellt', ding: 'holz', menge: 16 },
     ])
   })
 

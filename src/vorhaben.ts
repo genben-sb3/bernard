@@ -7,7 +7,7 @@ import { besorge, nichtGefundenText } from './besorgen'
 import { naechsterSchritt, WEITERZIEH_STRECKE, zaehleFehlschlag, type Aktion, type Fehlschlag, type Ort } from './entscheider'
 import { DINGE, mitMenge } from './dinge'
 import type { Endgrund, Laufbericht } from './laufbericht'
-import { aktuelleStufe, bisZu, fehlendes, rueckfall, STUFEN, type Inventar } from './stufen'
+import { aktuelleStufe, anzahl, bisZu, fehlendes, fehlt, rueckfall, STUFEN, type Inventar } from './stufen'
 
 const { goals } = pathfinderPkg
 
@@ -152,9 +152,12 @@ export class Vorhaben {
   beschreibe(): string {
     const inventar = inventarVon(this.bot)
     const stufe = aktuelleStufe(inventar)
-    const fehlt = stufe < STUFEN.length ? fehlendes(STUFEN[stufe], inventar).map(s => mitMenge(s.ding, s.menge)) : []
+    const offen = [
+      ...(stufe < this.zielstufe && stufe < STUFEN.length ? fehlendes(STUFEN[stufe], inventar) : []),
+      ...(stufe > 0 ? fehlt(STUFEN[Math.min(stufe, this.zielstufe) - 1].vorrat, inventar) : []),
+    ].map(s => mitMenge(s.ding, s.menge))
     const teile = [`Ich spiele bis ${bisZu(this.zielstufe)} und bin auf Stufe ${stufe}.`]
-    if (fehlt.length > 0) teile.push(`Mir fehlen noch ${fehlt.join(', ')}.`)
+    if (offen.length > 0) teile.push(`Mir fehlen noch ${offen.join(', ')}.`)
     if (this.status === 'pausiert') teile.push('Gerade warte ich, bis du „mach weiter“ sagst.')
     else if (this.status === 'unterbrochen') teile.push('Gerade mache ich, was du gesagt hast.')
     else if (this.aktion?.art === 'besorge') teile.push(`Gerade besorge ich ${mitMenge(this.aktion.ding, this.aktion.menge)}.`)
@@ -162,12 +165,11 @@ export class Vorhaben {
     return teile.join(' ')
   }
 
+  /** Was Bernard als Nächstes besorgen würde (Soll-Inventar oder Vorrat), mit der Menge, die noch fehlt. */
   private naechstesFehlendes(): string | null {
     const inventar = inventarVon(this.bot)
-    const stufe = aktuelleStufe(inventar)
-    if (stufe >= STUFEN.length) return null
-    const s = fehlendes(STUFEN[stufe], inventar)[0]
-    return s ? mitMenge(s.ding, s.menge) : null
+    const aktion = naechsterSchritt({ inventar, zielstufe: this.zielstufe })
+    return aktion.art === 'besorge' ? mitMenge(aktion.ding, aktion.menge - anzahl(inventar, aktion.ding)) : null
   }
 
   private position(): Ort {
@@ -243,7 +245,7 @@ export class Vorhaben {
       if (aktion.art === 'fertig') {
         return aktion.grund === 'stufeNichtUmgesetzt'
           ? { grund: aktion.grund, text: `Weiter als bis ${bisZu(aktion.stufe)} kann ich noch nicht.` }
-          : { grund: aktion.grund }
+          : { grund: aktion.grund, text: 'Mein Vorrat ist aufgefüllt, ich höre mit dem Vorhaben auf.' }
       }
       if (aktion.art === 'melden') {
         this.o.melde(`Ich finde ${DINGE[aktion.ding].kein}, auch nicht an ${aktion.anzahl} verschiedenen Stellen. ` +

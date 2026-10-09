@@ -80,12 +80,14 @@ export const tod: Szenario = {
     const ende = await warteAufChat(todBeginn, /geschafft|aufhören|höre|schief/i, 600000)
     b.pruefe('Bernard schafft die Steinzeit trotzdem', !!ende && /steinzeit geschafft/i.test(ende.text),
       ende ? `„${ende.text}“ nach ${((ende.t - todBeginn) / 1000).toFixed(0)} s` : 'keine Meldung in 10 min')
+    const fertig = await warteAufChat(todBeginn, /vorrat ist aufgefüllt/i, 300000)
+    b.pruefe('Danach füllt er den Vorrat auf und hört auf', !!fertig, fertig ? `„${fertig.text}“ nach ${((fertig.t - todBeginn) / 1000).toFixed(0)} s` : 'keine Meldung in 5 min')
     const fehlt: string[] = []
     for (const [gegenstand, soll] of SOLL) {
       const hat = await anzahl(rcon, gegenstand)
       if (hat < soll) fehlt.push(`${gegenstand} ${hat}/${soll}`)
     }
-    b.pruefe('Das Soll-Inventar der Steinzeit liegt vor', fehlt.length === 0, fehlt.length === 0 ? 'vollständig' : `fehlt: ${fehlt.join(', ')}`)
+    b.pruefe('Soll-Inventar und Vorrat der Steinzeit liegen vor', fehlt.length === 0, fehlt.length === 0 ? 'vollständig' : `fehlt: ${fehlt.join(', ')}`)
     b.notiere(`Bernards Meldungen: ${vonBernard(beginn).map(c => `„${c.text}“`).join(' ')}`)
     b.karte('Gesamter Vorhaben-Lauf', beginn)
 

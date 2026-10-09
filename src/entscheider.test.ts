@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_FEHLSCHLAEGE, naechsterSchritt, weiterziehZiel, zaehleFehlschlag, WEITERZIEH_STRECKE } from './entscheider'
+import type { Stufe } from './stufen'
 
 const STEINZEIT = {
   stone_pickaxe: 1, stone_sword: 1, stone_axe: 1, crafting_table: 1, furnace: 1, cobblestone: 16, oak_log: 16,
@@ -18,6 +19,38 @@ describe('naechsterSchritt', () => {
   it('besorgt den Vorrat als Gesamtmenge', () => {
     const inventar = { ...STEINZEIT, cobblestone: 5 }
     expect(naechsterSchritt({ inventar, zielstufe: 1 })).toEqual({ art: 'besorge', ding: 'stein', menge: 16 })
+  })
+
+  it('besorgt den Vorrat erst, wenn das Soll-Inventar der Stufe da ist', () => {
+    const inventar = { stone_pickaxe: 1, crafting_table: 1, stone_axe: 1, stone_sword: 1, cobblestone: 0 }
+    expect(naechsterSchritt({ inventar, zielstufe: 1 })).toEqual({ art: 'besorge', ding: 'ofen', menge: 1 })
+  })
+
+  it('füllt den Vorrat der Zielstufe vor dem Ende ganz auf, auch wenn er über der Hälfte liegt', () => {
+    const inventar = { ...STEINZEIT, cobblestone: 12 }
+    expect(naechsterSchritt({ inventar, zielstufe: 1 })).toEqual({ art: 'besorge', ding: 'stein', menge: 16 })
+  })
+
+  describe('Vorrat unterwegs (mit einer erfundenen zweiten Stufe)', () => {
+    const stufen: Stufe[] = [
+      { nummer: 1, name: 'Steinzeit', soll: [{ ding: 'steinspitzhacke', menge: 1 }], vorrat: [{ ding: 'fackeln', menge: 16 }] },
+      { nummer: 2, name: 'Eisenzeit', soll: [{ ding: 'ofen', menge: 1 }, { ding: 'truhe', menge: 1 }], vorrat: [] },
+    ]
+
+    it('füllt einen Vorrat unter der Hälfte vor dem nächsten Soll-Ding auf', () => {
+      expect(naechsterSchritt({ inventar: { stone_pickaxe: 1, torch: 7 }, zielstufe: 2 }, stufen))
+        .toEqual({ art: 'besorge', ding: 'fackeln', menge: 16 })
+    })
+
+    it('lässt einen Vorrat ab der Hälfte in Ruhe und arbeitet an der nächsten Stufe', () => {
+      expect(naechsterSchritt({ inventar: { stone_pickaxe: 1, torch: 8 }, zielstufe: 2 }, stufen))
+        .toEqual({ art: 'besorge', ding: 'ofen', menge: 1 })
+    })
+
+    it('füllt den Vorrat einer niedrigeren Stufe auch nach Erreichen der Zielstufe nur unter der Hälfte auf', () => {
+      expect(naechsterSchritt({ inventar: { stone_pickaxe: 1, torch: 8, furnace: 1, chest: 1 }, zielstufe: 2 }, stufen))
+        .toEqual({ art: 'fertig', grund: 'zielErreicht', stufe: 2 })
+    })
   })
 
   it('besorgt nichts für ein Werkzeug, für das ein besseres da ist', () => {
