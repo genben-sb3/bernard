@@ -15,9 +15,10 @@ Testet Bernard auf einem lokalen Testserver, ohne dass ein Mensch mitspielen mus
 
 ```sh
 cd server && ../.tools/java/bin/java -Xmx2G -jar paper.jar --nogui   # Server starten
-npm run sim -- folgen                                                # Szenario laufen lassen (folgen, sammeln, werkzeug, besorgen)
+npm run sim -- folgen                                                # Szenario laufen lassen (folgen, sammeln, werkzeug, besorgen, ki)
 npx tsx sim/diagnose-wand.ts                                          # Wand-Diagnose: überall 0 Server-Korrekturen erwartet
 npx tsx sim/diagnose-werfen.ts                                        # Werfen/Craften: Server- und Bernard-Sicht aufs Inventar vergleichen
+npx tsx sim/diagnose-ki.ts [url] [modell]                            # echtes KI-Modell: zehn Sätze, Ergebnis und Antwortzeit
 node sim/rcon-befehl.mjs "list"                                      # beliebige Server-Befehle
 ```
 
@@ -37,4 +38,6 @@ Eine Datei in `sim/szenarien/` anlegen, die ein `Szenario` exportiert (Aufbau pe
 - **Pfad-Knoten sind ganze Blöcke**: `GoalNearXZ(x, z, 0.3)` ist oft unerreichbar. Zum Aufheben `GoalXZ(floor(x), floor(z))` verwenden.
 - **Eingriffe in die Welt** laufen nur über `src/eingriffe.ts` (`baueAb`, `platziere`, `bewegungen`). Die Wegfindung setzt standardmäßig keine Gerüstblöcke. Nie direkt `bot.dig`/`bot.placeBlock` aufrufen und nie `new Movements` erzeugen.
 - **Abgebrochene Aufträge** dürfen die Wegfindung nicht stoppen (`halteAn` in `src/auftrag.ts`), sonst bremsen sie den neuen Befehl aus.
+- **Simulationen schließen sich gegenseitig aus** (`flock /tmp/bernard-sim.lock` in `npm run sim`). Mehrere Sessions teilen sich einen Testserver.
+- **KI im Szenario**: `ki` nutzt eine KI-Attrappe (`sim/ki-attrappe.ts`) mit festen Antworten, also prüft es das Zusammenspiel, nicht die Sprachfähigkeit. Die Sprachfähigkeit misst `sim/diagnose-ki.ts` mit einem echten Modell. Auf dem Linux-PC (nur CPU, oft ausgelastet) dauert eine Antwort von `qwen2.5:3b` etwa eine Minute.
 - 3D-Screenshots gibt es nicht: prismarine-viewer kann nur Versionen bis 1.21.4 darstellen.

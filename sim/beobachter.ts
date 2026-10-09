@@ -84,6 +84,11 @@ export class Beobachter {
     return this.proben.filter(p => p.t >= t)
   }
 
+  /** Ereignisse seit einem Zeitpunkt. */
+  ereignisseSeit(t: number) {
+    return this.ereignisse.filter(e => e.t >= t)
+  }
+
   /** Neue Chatzeilen seit einem Zeitpunkt. */
   chatSeit(t: number) {
     return this.chat.filter(c => c.t >= t)

@@ -1,6 +1,7 @@
 // Was ein Testszenario festlegt und womit es arbeiten kann.
 import type { Bot } from 'mineflayer'
 import type { Rcon } from 'rcon-client'
+import type { KiEinstellungen } from '../src/ki'
 import type { Beobachter } from './beobachter'
 import type { Position } from './protokoll'
 import type { Testspieler } from './testspieler'
@@ -19,6 +20,10 @@ export type Szenario = {
   spieler: string[]
   /** Kumpel, auf die Bernard in diesem Szenario hört. */
   kumpel: string[]
+  /** KI für freie Sätze; ohne Angabe versteht Bernard nur den Schnellweg. */
+  ki?: KiEinstellungen
+  /** Startet Hilfsdienste vor Bernard (z. B. eine KI-Attrappe) und liefert, wie sie wieder beendet werden. */
+  vorbereiten?: () => Promise<{ ki?: KiEinstellungen; aufraeumen: () => Promise<void> }>
   /** Server-Befehle, die die Testumgebung bauen (läuft vor dem Beitritt der Bots fertig). */
   aufbau: string[]
   /** Startpositionen (x, z) nach dem Aufbau. */

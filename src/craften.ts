@@ -4,9 +4,10 @@ import type { Block } from 'prismarine-block'
 import pathfinderPkg from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
 import { halteAn, type Abbruch } from './auftrag'
+import type { Recipe } from 'prismarine-recipe'
 import { erstellePlanner, type Bestand } from './craftplan'
 import { baueAb, platziere, warumNichtPlatzieren } from './eingriffe'
-import { DINGE, nameFuer, type DingName } from './dinge'
+import { DINGE, dingFuer, nameFuer, type DingSchluessel } from './dinge'
 import { warteAufInventarRuhe } from './ruhe'
 
 const { goals } = pathfinderPkg
@@ -20,10 +21,10 @@ export type Craftergebnis =
 
 const WERKBANK_REICHWEITE = 4
 
-export async function crafte(bot: Bot, ding: DingName, menge: number, abbruch: Abbruch,
+export async function crafte(bot: Bot, ding: DingSchluessel, menge: number, abbruch: Abbruch,
   melde: (text: string) => void = () => {}, protokoll: (text: string) => void = () => {}): Promise<Craftergebnis> {
-  const d = DINGE[ding]
-  const ziele = ('herstellen' in d ? d.herstellen : []).map(n => bot.registry.itemsByName[n]?.id).filter((i): i is number => i !== undefined)
+  const d = dingFuer(ding)
+  const ziele = (d.herstellen ?? []).map(n => bot.registry.itemsByName[n]?.id).filter((i): i is number => i !== undefined)
   const zaehle = () => bot.inventory.items().filter(i => d.passt(i.name)).reduce((s, i) => s + i.count, 0)
   const vorher = zaehle()
 
@@ -47,16 +48,35 @@ export async function crafte(bot: Bot, ding: DingName, menge: number, abbruch: A
       if (werkbank && schritt.rezept.requiresTable && bot.entity.position.distanceTo(werkbank.position) > WERKBANK_REICHWEITE) {
         await bot.pathfinder.goto(new goals.GoalNear(werkbank.position.x, werkbank.position.y, werkbank.position.z, 2))
       }
-      const ergebnisId = schritt.rezept.result.id
-      const erwartet = anzahlVon(bot, ergebnisId) + schritt.mal * schritt.rezept.result.count
-      await warteAufInventarRuhe(bot)
-      await bot.craft(schritt.rezept, schritt.mal, schritt.rezept.requiresTable ? werkbank! : undefined)
-      await warteBisImInventar(bot, ergebnisId, erwartet)
+      // Einzeln craften und jedes Mal warten: bot.craft(rezept, 2) wiederholt intern sofort und findet dann
+      // im noch nicht aktualisierten Inventar die Zutaten nicht („missing ingredient“)
+      for (let i = 0; i < schritt.mal; i++) {
+        if (abbruch.abgebrochen) return { art: 'abgebrochen' }
+        await crafteEinmal(bot, schritt.rezept, schritt.rezept.requiresTable ? werkbank! : undefined, protokoll)
+      }
     }
   } finally {
     if (aufgestellt) await nimmWerkbankMit(bot, aufgestellt, abbruch, protokoll)
   }
   return { art: 'fertig', anzahl: zaehle() - vorher }
+}
+
+/** Ein Rezept einmal craften. Klappt es nicht, nach einer Pause mit frischem Inventar ein zweites Mal. */
+async function crafteEinmal(bot: Bot, rezept: Recipe, werkbank: Block | undefined, protokoll: (text: string) => void) {
+  const ergebnisId = rezept.result.id
+  const erwartet = anzahlVon(bot, ergebnisId) + rezept.result.count
+  for (let versuch = 1; ; versuch++) {
+    await warteAufInventarRuhe(bot)
+    try {
+      await bot.craft(rezept, 1, werkbank)
+      break
+    } catch (fehler) {
+      if (versuch >= 2 || !/missing ingredient/.test(String(fehler))) throw fehler
+      protokoll(`Craften: ${bot.registry.items[ergebnisId].name} – Zutaten noch nicht da, neuer Versuch`)
+      await new Promise(r => setTimeout(r, 1000))
+    }
+  }
+  await warteBisImInventar(bot, ergebnisId, erwartet)
 }
 
 function anzahlVon(bot: Bot, id: number) {

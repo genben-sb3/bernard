@@ -3,5 +3,10 @@
   "port": 25565,
   "version": "26.1",
   "name": "Bernard",
-  "kumpel": ["Ben"]
+  "kumpel": ["Ben"],
+  "ki": {
+    "url": "http://localhost:11434/v1",
+    "modell": "qwen2.5:7b",
+    "zeitlimitMs": 30000
+  }
 }

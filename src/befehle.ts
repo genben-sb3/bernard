@@ -1,5 +1,5 @@
 // Erkennt Befehle im Chat (Schnellweg ohne KI).
-import { DINGE, dingAusWort, type DingName } from './dinge'
+import { DINGE, dingAusWort, type DingName, type DingSchluessel } from './dinge'
 
 export type Befehl =
   | { art: 'folgen' }
@@ -8,8 +8,8 @@ export type Befehl =
   | { art: 'sammeln'; menge: number; material: Material; mengeGeraten: boolean }
   | { art: 'inventar' }
   /** ding null = alles; menge 'alle' = alles von diesem Ding */
-  | { art: 'geben'; ding: DingName | null; menge: number | 'alle' }
-  | { art: 'craften'; ding: DingName; menge: number }
+  | { art: 'geben'; ding: DingSchluessel | null; menge: number | 'alle' }
+  | { art: 'craften'; ding: DingSchluessel; menge: number }
 
 export type Material = 'holz' | 'eichenholz' | 'birkenholz' | 'fichtenholz' | 'stein' | 'erde' | 'sand'
 
@@ -59,9 +59,12 @@ export type Nachricht = {
   privat: boolean
 }
 
+/** Wörter, die nichts am Befehl ändern („bleib mal da stehen“, „folg mir bitte“). */
+const FUELLWOERTER = new Set(['mal', 'bitte', 'doch', 'eben', 'kurz', 'denn', 'ja', 'jetzt', 'please', 'just'])
+
 const MUSTER: Array<[RegExp, Befehl]> = [
   [/^(folge?|folg) mir$|^follow me$/, { art: 'folgen' }],
-  [/^(stopp?|halt|bleib( hier| stehen)?|stay)$/, { art: 'stopp' }],
+  [/^(stopp?|halt|bleib( hier| stehen| da| da stehen| hier stehen)?|stay( here)?)$/, { art: 'stopp' }],
   [/^(komm( her| zu mir)?|come( here)?)$/, { art: 'kommHer' }],
 ]
 
@@ -77,7 +80,7 @@ export function anBernard(nachricht: Nachricht, name = 'Bernard'): string | null
 
 /** Erkennt einen Befehl im Text (ohne Anrede). Liefert null, wenn der Schnellweg ihn nicht kennt. */
 export function erkenneBefehl(text: string): Befehl | null {
-  const normal = text.toLowerCase().replace(/[.!?]+$/, '').replace(/\s+/g, ' ').trim()
+  const normal = text.toLowerCase().replace(/[.!?,]+/g, ' ').split(/\s+/).filter(w => w && !FUELLWOERTER.has(w)).join(' ')
   if (INVENTAR.test(normal)) return { art: 'inventar' }
   const geben = normal.match(GEBEN)
   if (geben) {

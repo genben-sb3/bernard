@@ -10,7 +10,7 @@
     "test": "vitest run",
     "typecheck": "tsc -p .",
     "bernard": "tsx src/start.ts",
-    "sim": "tsx sim/lauf.ts",
+    "sim": "flock /tmp/bernard-sim.lock tsx sim/lauf.ts",
     "postinstall": "patch-package"
   },
   "keywords": [],

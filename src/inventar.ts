@@ -3,7 +3,7 @@ import type { Bot } from 'mineflayer'
 import type { Entity } from 'prismarine-entity'
 import pathfinderPkg from 'mineflayer-pathfinder'
 import { halteAn, type Abbruch } from './auftrag'
-import { DINGE, nameFuer, mitMenge, type DingName } from './dinge'
+import { dingFuer, nameFuer, mitMenge, type DingSchluessel } from './dinge'
 import { warteAufInventarRuhe } from './ruhe'
 
 const { goals } = pathfinderPkg
@@ -35,9 +35,9 @@ export type Geben =
  * Läuft zum Kumpel und wirft ihm Sachen zu. `ding` null = alles; `menge` 'alle' = alles von diesem Ding.
  * Hat Bernard weniger als verlangt, gibt er, was er hat.
  */
-export async function gib(bot: Bot, kumpel: Entity, ding: DingName | null, menge: number | 'alle', abbruch: Abbruch,
+export async function gib(bot: Bot, kumpel: Entity, ding: DingSchluessel | null, menge: number | 'alle', abbruch: Abbruch,
   beimWerfen: (ergebnis: Geben) => void = () => {}, protokoll: (text: string) => void = () => {}): Promise<Geben> {
-  const passt = ding ? DINGE[ding].passt : () => true
+  const passt = ding ? dingFuer(ding).passt : () => true
   const vorrat = bot.inventory.items().filter(i => passt(i.name))
   const vorhanden = vorrat.reduce((s, i) => s + i.count, 0)
   if (vorhanden === 0) return { art: 'nichtDa' }
@@ -89,10 +89,10 @@ async function mitZeitlimit<T>(versprechen: Promise<T>, ms: number): Promise<T> 
 }
 
 /** Antworttext zu einem Geben-Ergebnis. */
-export function antwortZumGeben(ergebnis: Geben, ding: DingName | null, verlangt: number | 'alle'): string {
+export function antwortZumGeben(ergebnis: Geben, ding: DingSchluessel | null, verlangt: number | 'alle'): string {
   switch (ergebnis.art) {
     case 'nichtDa':
-      return ding ? `Ich habe ${DINGE[ding].kein}.` : 'Meine Taschen sind leer.'
+      return ding ? `Ich habe ${dingFuer(ding).kein}.` : 'Meine Taschen sind leer.'
     case 'nichtErreicht':
       return 'Ich komme nicht zu dir durch.'
     case 'gegeben':

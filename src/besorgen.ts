@@ -2,13 +2,13 @@
 import type { Bot } from 'mineflayer'
 import type { Material } from './befehle'
 import { crafte } from './craften'
-import { DINGE, mitMenge, type DingName } from './dinge'
+import { DINGE, dingFuer, mitMenge, type DingSchluessel } from './dinge'
 import type { Abbruch } from './auftrag'
 import { MATERIALIEN, sammle } from './sammeln'
 
 export type Sammelauftrag = { material: Material; menge: number }
 
-function istSammelbar(ding: DingName): ding is Material {
+function istSammelbar(ding: DingSchluessel): ding is Material {
   return ding in MATERIALIEN
 }
 
@@ -63,8 +63,8 @@ const MAX_TIEFE = 4
  * besorgt fehlende Zutaten dafür rekursiv auf dieselbe Weise.
  * Wiederverwendbar für Befehle und später für selbstständiges Spielen.
  */
-export async function besorge(bot: Bot, ding: DingName, gesamt: number, k: Besorgkontext, tiefe = 0): Promise<Besorgergebnis> {
-  const zaehle = () => bot.inventory.items().filter(i => DINGE[ding].passt(i.name)).reduce((s, i) => s + i.count, 0)
+export async function besorge(bot: Bot, ding: DingSchluessel, gesamt: number, k: Besorgkontext, tiefe = 0): Promise<Besorgergebnis> {
+  const zaehle = () => bot.inventory.items().filter(i => dingFuer(ding).passt(i.name)).reduce((s, i) => s + i.count, 0)
   const start = zaehle()
   if (start >= gesamt) return { art: 'fertig', anzahl: 0, unterwegs: false }
   if (tiefe > MAX_TIEFE) return { art: 'fehlt', text: mitMenge(ding, gesamt - start) }
@@ -87,7 +87,7 @@ async function sammleMitWerkzeug(bot: Bot, material: Material, menge: number, k:
   return { art: 'fertig', anzahl: ergebnis.anzahl, unterwegs: true }
 }
 
-async function crafteMitZutaten(bot: Bot, ding: DingName, gesamt: number, k: Besorgkontext, tiefe: number,
+async function crafteMitZutaten(bot: Bot, ding: DingSchluessel, gesamt: number, k: Besorgkontext, tiefe: number,
   zaehle: () => number, start: number): Promise<Besorgergebnis> {
   let unterwegs = false
   let letzterText = ''

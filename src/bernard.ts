@@ -2,12 +2,13 @@
 import mineflayer, { type Bot } from 'mineflayer'
 import pathfinderPkg from 'mineflayer-pathfinder'
 import { GoalHinterher } from './ziele'
-import { anBernard, erkenneBefehl, istKumpel, type Material, type Nachricht } from './befehle'
+import { anBernard, erkenneBefehl, istKumpel, type Befehl, type Material, type Nachricht } from './befehle'
 import { halteAn, type Abbruch } from './auftrag'
 import { besorge } from './besorgen'
 import { bewegungen } from './eingriffe'
-import { DINGE, mitMenge } from './dinge'
+import { DINGE, dingAufloeser, dingFuer, mitMenge } from './dinge'
 import { antwortZumGeben, beschreibeInventar, gib, type Geben } from './inventar'
+import { verstehe, type KiEinstellungen } from './ki'
 import { sammle, type Sammelergebnis } from './sammeln'
 
 const { pathfinder, goals } = pathfinderPkg
@@ -20,9 +21,15 @@ export type BernardOptionen = {
   kumpel: string[]
   /** Optional: bekommt interne Abläufe mit (z. B. für die Simulation). */
   protokoll?: (text: string) => void
+  /** Optional: KI für Sätze, die der Schnellweg nicht kennt. */
+  ki?: KiEinstellungen
+  /** Bernards Persönlichkeit für die KI (aus config/persoenlichkeit.md). */
+  persoenlichkeit?: string
 }
 
 const TASTEN = ['forward', 'back', 'left', 'right', 'jump', 'sprint', 'sneak'] as const
+const KI_DENKPAUSE_MS = 3000
+const KI_MELDEN_HOECHSTENS_MS = 5 * 60 * 1000
 
 
 export function starteBernard(optionen: BernardOptionen): Bot {
@@ -69,11 +76,47 @@ export function starteBernard(optionen: BernardOptionen): Bot {
     const text = anBernard(nachricht, optionen.name)
     if (text === null) return
     if (!istKumpel(nachricht.absender, optionen.kumpel)) return
+    nachrichtNr++ // macht noch laufende KI-Anfragen ungültig
     const befehl = erkenneBefehl(text)
     if (!befehl) {
-      antworte(bot, nachricht, 'Das verstehe ich noch nicht.')
+      void frageKi(text, nachricht, nachrichtNr)
       return
     }
+    fuehreAus(befehl, nachricht)
+  }
+
+  let nachrichtNr = 0
+  let kiZuletztGemeldet = 0
+  /** Sätze, die der Schnellweg nicht kennt, versteht die KI (wenn eingerichtet). */
+  const frageKi = async (text: string, nachricht: Nachricht, nr: number) => {
+    if (!optionen.ki) return antworte(bot, nachricht, 'Das verstehe ich noch nicht.')
+    const start = Date.now()
+    const denkt = setTimeout(() => { if (nr === nachrichtNr) antworte(bot, nachricht, 'Hmm, Moment …') }, KI_DENKPAUSE_MS)
+    const lage = {
+      kumpel: nachricht.absender,
+      inventar: beschreibeInventar(bot),
+      gegenstaende: gegenstaendeAlsIds(bot),
+      persoenlichkeit: optionen.persoenlichkeit ?? 'Freundlich, hilfsbereit, antwortet kurz.',
+    }
+    const ergebnis = await verstehe(text, lage, optionen.ki, dingAufloeser(bot))
+    clearTimeout(denkt)
+    optionen.protokoll?.(`KI: „${text}“ → ${JSON.stringify(ergebnis)} nach ${Date.now() - start} ms`)
+    if (nr !== nachrichtNr) return // inzwischen kam eine neuere Nachricht
+    switch (ergebnis.art) {
+      case 'befehl':
+        return fuehreAus(ergebnis.befehl, nachricht)
+      case 'sagen':
+        return antworte(bot, nachricht, ergebnis.text)
+      case 'fehler':
+        if (ergebnis.grund === 'nichtErreichbar' && Date.now() - kiZuletztGemeldet > KI_MELDEN_HOECHSTENS_MS) {
+          kiZuletztGemeldet = Date.now()
+          return antworte(bot, nachricht, 'Mein KI-Kopf ist gerade nicht erreichbar. Einfache Befehle wie „folge mir“ gehen aber.')
+        }
+        return antworte(bot, nachricht, 'Das verstehe ich noch nicht.')
+    }
+  }
+
+  const fuehreAus = (befehl: Befehl, nachricht: Nachricht) => {
     brichAb() // ein neuer Befehl ersetzt den laufenden
     const kumpel = nachricht.absender
     const ziel = bot.players[kumpel]?.entity
@@ -111,7 +154,7 @@ export function starteBernard(optionen: BernardOptionen): Bot {
       case 'craften': {
         const aufgabe: Abbruch = { abgebrochen: false }
         laufendeAufgabe = aufgabe
-        const vorher = bot.inventory.items().filter(i => DINGE[befehl.ding].passt(i.name)).reduce((s, i) => s + i.count, 0)
+        const vorher = bot.inventory.items().filter(i => dingFuer(befehl.ding).passt(i.name)).reduce((s, i) => s + i.count, 0)
         void besorge(bot, befehl.ding, vorher + befehl.menge,
           { abbruch: aufgabe, melde: text => antworte(bot, nachricht, text), protokoll: optionen.protokoll })
           .then(async ergebnis => {
@@ -167,6 +210,12 @@ async function zurueckZu(bot: Bot, kumpel: string, aufgabe: Abbruch) {
   const ziel = bot.players[kumpel]?.entity
   if (!ziel) return
   await bot.pathfinder.goto(new goals.GoalNear(ziel.position.x, ziel.position.y, ziel.position.z, 2)).catch(() => halteAn(bot, aufgabe))
+}
+
+function gegenstaendeAlsIds(bot: Bot) {
+  const summen = new Map<string, number>()
+  for (const item of bot.inventory.items()) summen.set(item.name, (summen.get(item.name) ?? 0) + item.count)
+  return [...summen].map(([name, anzahl]) => `${name} ×${anzahl}`).join(', ')
 }
 
 function meldeFehler(bot: Bot, nachricht: Nachricht, aufgabe: Abbruch, wobei: string, fehler: unknown,

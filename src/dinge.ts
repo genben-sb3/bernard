@@ -44,6 +44,29 @@ export const DINGE = {
 
 export type DingName = keyof typeof DINGE
 
+/** Ein Ding aus der Wortliste oder ein beliebiger Minecraft-Gegenstand („mc:ladder“), z. B. von der KI. */
+export type DingSchluessel = DingName | `mc:${string}`
+
+const minecraftDinge = new Map<string, Ding>()
+
+/** Macht einen beliebigen Minecraft-Gegenstand zum Ding (Name wie im Spiel, englisch). */
+export function minecraftDing(gegenstand: string, anzeigename: string): DingSchluessel {
+  const schluessel = `mc:${gegenstand}` as const
+  if (!minecraftDinge.has(schluessel)) {
+    minecraftDinge.set(schluessel, {
+      einzahl: anzeigename, mehrzahl: anzeigename, kein: `kein ${anzeigename}`,
+      passt: n => n === gegenstand, herstellen: [gegenstand],
+    })
+  }
+  return schluessel
+}
+
+export function dingFuer(schluessel: DingSchluessel): Ding {
+  const d = schluessel.startsWith('mc:') ? minecraftDinge.get(schluessel) : (DINGE as Record<string, Ding>)[schluessel]
+  if (!d) throw new Error(`Unbekanntes Ding ${schluessel}`)
+  return d
+}
+
 /** Wörter im Chat (klein geschrieben) → Ding. */
 const WOERTER: Record<string, DingName> = {
   holz: 'holz', wood: 'holz', log: 'holz', logs: 'holz', stamm: 'holz', 'stämme': 'holz',
@@ -76,8 +99,8 @@ export function dingAusWort(wort: string): DingName | null {
 }
 
 /** „1 Werkbank“, „4 Bretter“, „12 Holz“. */
-export function mitMenge(ding: DingName, anzahl: number) {
-  const d = DINGE[ding]
+export function mitMenge(ding: DingSchluessel, anzahl: number) {
+  const d = dingFuer(ding)
   return `${anzahl} ${anzahl === 1 ? d.einzahl : d.mehrzahl}`
 }
 
@@ -88,4 +111,23 @@ export function nameFuer(gegenstand: string, anzahl: number, englisch: string): 
   }
   if (DINGE.holz.passt(gegenstand)) return mitMenge('holz', anzahl)
   return `${anzahl} ${englisch}`
+}
+
+/**
+ * Löst ein Wort in ein Ding auf: deutsches/englisches Wort aus der Wortliste, Schlüssel der Wortliste oder
+ * Minecraft-Gegenstands-ID („oak_log“, „minecraft:ladder“). Bekannte Gegenstände bekommen ihren deutschen Namen.
+ */
+export function dingAufloeser(bot: { registry: { itemsByName: Record<string, { name: string; displayName: string } | undefined> } }) {
+  return (wort: string): DingSchluessel | null => {
+    const bekannt = dingAusWort(wort) ?? (wort in DINGE ? (wort as DingName) : null)
+    if (bekannt) return bekannt
+    const id = wort.toLowerCase().trim().replace(/^minecraft:/, '').replace(/\s+/g, '_')
+    const item = bot.registry.itemsByName[id]
+    if (!item) return null
+    const passend = (Object.entries(DINGE) as Array<[DingName, Ding]>)
+      .find(([name, d]) => name !== 'holz' && (d.herstellen?.includes(id) || d.passt(id)))
+    if (passend) return passend[0]
+    if (DINGE.holz.passt(id)) return 'holz'
+    return minecraftDing(id, item.displayName)
+  }
 }

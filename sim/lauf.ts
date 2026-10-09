@@ -9,10 +9,11 @@ import type { Szenario } from './szenario'
 import { folgen } from './szenarien/folgen'
 import { sammeln } from './szenarien/sammeln'
 import { besorgen } from './szenarien/besorgen'
+import { ki } from './szenarien/ki'
 import { werkzeug } from './szenarien/werkzeug'
 import { Testspieler, warte } from './testspieler'
 
-const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen }
+const SZENARIEN: Record<string, Szenario> = { folgen, sammeln, werkzeug, besorgen, ki }
 
 const VERBINDUNG = { host: 'localhost', port: 25565, version: '26.1' }
 const BODEN = -60
@@ -36,6 +37,7 @@ const befehl = async (b: string) => {
 
 const beobachter = new Beobachter(VERBINDUNG, ['Bernard', ...szenario.spieler], ordner)
 let abbruch: string | undefined
+let vorbereitung: Awaited<ReturnType<NonNullable<Szenario['vorbereiten']>>> | undefined
 const bots = [beobachter.bot]
 
 try {
@@ -46,7 +48,10 @@ try {
   await leereArena()
   for (const b of szenario.aufbau) await befehl(b)
 
-  const bernard = starteBernard({ ...VERBINDUNG, name: 'Bernard', kumpel: szenario.kumpel,
+  const persoenlichkeit = readFileSync(join('config', 'persoenlichkeit.md'), 'utf8').trim()
+  vorbereitung = await szenario.vorbereiten?.()
+  const ki = vorbereitung?.ki ?? szenario.ki
+  const bernard = starteBernard({ ...VERBINDUNG, name: 'Bernard', kumpel: szenario.kumpel, ki, persoenlichkeit,
     protokoll: text => beobachter.notiere(`[Bernard intern] ${text}`) })
   bots.push(bernard)
   bernard.on('kicked', grund => beobachter.notiere(`Bernard wurde rausgeworfen: ${JSON.stringify(grund)}`))
@@ -83,6 +88,7 @@ try {
 const bericht = beobachter.beende({ szenario: szenario.name, beschreibung: szenario.beschreibung, abbruch })
 for (const bot of bots.slice(1)) bot.quit()
 await rcon.end()
+await vorbereitung?.aufraeumen()
 
 console.log(`${bericht.bestanden ? 'BESTANDEN' : 'NICHT BESTANDEN'}: ${szenario.name}`)
 for (const p of bericht.pruefungen) console.log(`  ${p.bestanden ? '✓' : '✗'} ${p.name} — ${p.details}`)

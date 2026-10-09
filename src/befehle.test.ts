@@ -32,7 +32,7 @@ describe('erkenneBefehl', () => {
   })
 
   it('kennt freie Sätze nicht (die gehen später an die KI)', () => {
-    expect(erkenneBefehl('hol mir bitte 10 Holz')).toBeNull()
+    expect(erkenneBefehl('könntest du mir vielleicht etwas Holz besorgen')).toBeNull()
   })
 })
 
@@ -105,5 +105,23 @@ describe('erkenneBefehl – craften', () => {
 
   it('craftet nur, was man herstellen kann', () => {
     expect(erkenneBefehl('mach 3 holz')).toBeNull()
+  })
+})
+
+describe('erkenneBefehl – Füllwörter', () => {
+  it.each([
+    ['bleib mal da stehen', 'stopp'],
+    ['folg mir bitte', 'folgen'],
+    ['komm doch mal her', 'kommHer'],
+    ['bitte stopp', 'stopp'],
+    ['was hast du denn dabei', 'inventar'],
+    ['bleib da', 'stopp'],
+  ])('%s → %s', (text, art) => {
+    expect(erkenneBefehl(text)?.art).toBe(art)
+  })
+
+  it('lässt Mengen und Dinge in Ruhe', () => {
+    expect(erkenneBefehl('hol mir bitte mal 5 holz')).toEqual({ art: 'sammeln', menge: 5, material: 'holz', mengeGeraten: false })
+    expect(erkenneBefehl('gib mir doch mal 2 stöcke')).toEqual({ art: 'geben', ding: 'stoecke', menge: 2 })
   })
 })
